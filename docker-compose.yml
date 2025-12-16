@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: artatlas-postgres
+    restart: unless-stopped
+    ports:
+      - "8501:5432"
+    environment:
+      POSTGRES_USER: artuser
+      POSTGRES_PASSWORD: artpass
+      POSTGRES_DB: artatlas
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artuser -d artatlas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
