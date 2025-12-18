@@ -85,7 +85,7 @@ def get_fallback_vector_search_result_for_artwork(cur, query_vector_embedding):
 
 
 def get_vector_search_result_for_artwork(cur, query_vector_embedding, id_array_string):
-    print("..... Found Lexical Results, Filtering By Vector Embeddings ......")
+    print("..... Found Lexical Results for Artwork, Filtering By Vector Embeddings ......")
 
 
     query_semantic = """
@@ -134,6 +134,6 @@ def get_search_results_for_artwork(query:str):
                 return results_with_score
 
     except Exception as error:
-        print(f"An error occurred: {error}")
+        print(f"An error occurred while fetching results for artwork: {error}")
         return []
     

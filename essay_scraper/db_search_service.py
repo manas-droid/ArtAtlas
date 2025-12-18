@@ -32,7 +32,7 @@ def get_lexical_results_for_artwork(cur, query):
     return lexical_score_map
 
 
-def get_fallback_vector_search_result_for_artwork(cur, query_vector_embedding):
+def get_fallback_vector_search_result_for_essay(cur, query_vector_embedding):
     print("No lexical results found for Artwork-  [Fallback] Searching vector embeddings")
 
     query_vector_search = """
@@ -50,7 +50,7 @@ def get_fallback_vector_search_result_for_artwork(cur, query_vector_embedding):
 
 
 
-def get_vector_search_result_for_artwork(cur, query_vector_embedding, id_array_string):
+def get_vector_search_result_for_essay(cur, query_vector_embedding, id_array_string):
     print("..... Found Lexical Results, Filtering By Vector Embeddings ......")
 
 
@@ -69,7 +69,7 @@ def get_vector_search_result_for_artwork(cur, query_vector_embedding, id_array_s
     return cur.fetchall()
 
 
-def get_results_with_score(final_results, lexical_score_map):
+def get_results_with_score_for_essay(final_results, lexical_score_map):
     results_with_score = []
     LEXICAL_WEIGHT = 0.4
     SEMANTIC_WEIGHT = 0.6
@@ -120,17 +120,17 @@ def get_search_results_for_essay(query:str):
                 results = []
                 
                 if not lexical_ids:
-                    results = get_fallback_vector_search_result_for_artwork(cur, query_vector_embedding)
+                    results = get_fallback_vector_search_result_for_essay(cur, query_vector_embedding)
 
                 else:
-                    results = get_vector_search_result_for_artwork(cur, query_vector_embedding,id_array_string)                     
+                    results = get_vector_search_result_for_essay(cur, query_vector_embedding,id_array_string)                     
                 
 
-                results_with_score = get_results_with_score(results, lexical_score_map)
+                results_with_score = get_results_with_score_for_essay(results, lexical_score_map)
 
 
                 return  results_with_score
 
     except Exception as error:
-        print(f"An error occurred: {error}")
+        print(f"An error occurred while searching for essay: {error}")
         return []
