@@ -7,20 +7,14 @@ from .extract_data import get_object_ids_by_department, get_objects_by_object_id
 from .met_data_service import check_object_exists, db_batch_insert_artwork
 
 import time
-from sentence_transformers import SentenceTransformer
-import torch
-
-
+from utils.embeddings import encode_text
+from utils.config import INGESTION
 
  
-DELAY_SECONDS = 0.5
-BATCH_SIZE = 25
+DELAY_SECONDS = INGESTION.artwork_delay_seconds
+BATCH_SIZE = INGESTION.artwork_batch_size
 
 
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-model = SentenceTransformer('all-MiniLM-L6-v2').to(device)
 
 
 
@@ -86,7 +80,7 @@ def save_batched_list_of_artworks(dept_id:int, limit:int = 3000):
         artwork_response:ArtworkModel = transform_object_to_artwork(object_response)
 
         if validate_object_response(artwork_response):
-            artwork_response['embedding'] = model.encode(artwork_response['searchable_text']).tolist()
+            artwork_response['embedding'] = encode_text(artwork_response['searchable_text'])
             list_of_artworks.append(artwork_response) 
         
         

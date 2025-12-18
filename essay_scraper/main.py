@@ -1,10 +1,16 @@
-from .movements.dutch_golden_age import get_dutch_history_data, get_genre_data, get_technique_data, get_technique_data_2, get_materials_data
+"""Utilities for loading curated essays into the database."""
+
+from .movements.dutch_golden_age import (
+    get_dutch_history_data,
+    get_genre_data,
+    get_technique_data,
+    get_technique_data_2,
+    get_materials_data,
+)
 from .essay_db_service import save_essay_response_to_db
 
 
-
-
-def get_essays_and_save_to_db():
+def get_essays_and_save_to_db() -> None:
     dutch_history_response = get_dutch_history_data()
     save_essay_response_to_db(dutch_history_response)
 
@@ -21,7 +27,13 @@ def get_essays_and_save_to_db():
     save_essay_response_to_db(materials_data_response)
 
 
-get_essays_and_save_to_db()
+def main() -> None:
+    """CLI entry point to ingest all curated essays."""
+    get_essays_and_save_to_db()
+
+
+if __name__ == "__main__":
+    main()
 
 
 

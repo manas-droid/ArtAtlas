@@ -1,9 +1,9 @@
+from search.retrievers import ArtworkRetriever, EssayRetriever
 from .search_model import SearchResponse
-from  met_data_collection.db_search_service import get_search_results_for_artwork
-from essay_scraper.db_search_service import get_search_results_for_essay
 
 
-
+artwork_retriever = ArtworkRetriever()
+essay_retriever = EssayRetriever()
 
 def get_reranked_results(results_from_artwork:list, results_from_essay:list):
         results = []
@@ -17,8 +17,8 @@ def find_top_relevant_results(query:str)->SearchResponse:
     if not query or  len(query.replace(" ", "")) == 0:
             return {'message': 'InAppropriate Query', 'results': []}
 
-    results_from_artwork =  get_search_results_for_artwork(query)   
-    results_from_essay   =  get_search_results_for_essay(query)
+    results_from_artwork =  artwork_retriever.search(query)   
+    results_from_essay   =  essay_retriever.search(query)
 
     reranked_results = get_reranked_results(results_from_artwork, results_from_essay)
 

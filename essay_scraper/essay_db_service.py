@@ -1,12 +1,6 @@
 import psycopg
-from sentence_transformers import SentenceTransformer
-import torch
 from db.db_pool import get_connection
-
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-model = SentenceTransformer('all-MiniLM-L6-v2').to(device)
+from utils.embeddings import encode_text
 
 
 
@@ -38,7 +32,6 @@ def save_essay_response_to_db(essay_response):
     data_to_insert = []
     i = 0
     for chunk in essay_response['chunks']:
-        chunk_embedding = model.encode(chunk).tolist()
         row_tuple = (
             essay_response['essay_title'],
             essay_response['essay_type'].name,
@@ -46,7 +39,7 @@ def save_essay_response_to_db(essay_response):
             essay_response['source_url'],
             chunk,
             i,
-            chunk_embedding
+            encode_text(chunk)
         )
         i+=1
         
