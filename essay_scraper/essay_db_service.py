@@ -4,7 +4,6 @@ import torch
 from db.db_pool import get_connection
 
 
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = SentenceTransformer('all-MiniLM-L6-v2').to(device)
