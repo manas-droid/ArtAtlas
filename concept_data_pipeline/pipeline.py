@@ -6,7 +6,8 @@ from typing import Iterable, Sequence
 
 from concept_data_pipeline.artwork_concept.insert_artwork_concept_data import (
     ArtworkConceptRecord,
-    insert_artwork_concepts,
+    generate_artwork_concept_affinities,
+    insert_artwork_concepts
 )
 from concept_data_pipeline.concept.insert_concept_data import (
     CURATED_CONCEPTS,
@@ -45,7 +46,10 @@ def seed_concept_mappings(
     if essay_payload:
         _safe_call(insert_essay_concepts, essay_payload, db_pool=db_pool)
 
-    artwork_payload = _coerce_sequence(artwork_concepts)
+    if artwork_concepts is None:
+        artwork_payload = generate_artwork_concept_affinities(db_pool=db_pool)
+    else:
+        artwork_payload = _coerce_sequence(artwork_concepts)
     if artwork_payload:
         _safe_call(insert_artwork_concepts, artwork_payload, db_pool=db_pool)
 
