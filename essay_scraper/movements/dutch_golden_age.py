@@ -18,6 +18,18 @@ class EssayResponse(TypedDict):
     source:str
     source_url:str
 
+def divide_into_managable_chunks(data, chunks):
+    total_chars = 0
+    summary_str = ""
+
+    for sentence in data.get_text().split('.'):
+        summary_str += sentence+'.'
+        total_chars += len(summary_str.split(" ")) 
+        if total_chars >= 150:
+            total_chars = 0
+            chunks.append(summary_str)
+            summary_str = ''
+
 
 # Explains what the dutch golden age was about
 def get_dutch_history_data()->EssayResponse:
@@ -31,34 +43,15 @@ def get_dutch_history_data()->EssayResponse:
     paragraphs = soup.select('.rte p')
 
     history_paras = paragraphs[0:3]
-    
-    sentences = history_paras[0].get_text().split('.')
+    chunks = []
 
-    chunks = [
-        sentences[0],
-        sentences[2]
-    ]
-
-    sentences = history_paras[2].get_text().split('.')
-    
-    chunks.append(sentences[1])
-    chunks.append(sentences[5])
-
+    divide_into_managable_chunks(history_paras[0], chunks)
+    divide_into_managable_chunks(history_paras[2], chunks)
 
     return {'chunks':chunks , 'essay_type': EssayCategory.MOVEMENT,  'essay_title': 'Dutch Golden Age Dawn New Art Market', 'source': 'Rauantiques' , 'source_url': source_url}
 
 
-def divide_into_managable_chunks(data, chunks):
-    total_chars = 0
-    summary_str = ""
 
-    for sentence in data.get_text().split('.'):
-        summary_str += sentence+'.'
-        total_chars += len(summary_str.split(" ")) 
-        if total_chars >= 150:
-            total_chars = 0
-            chunks.append(summary_str)
-            summary_str = ''
 
 
 """
