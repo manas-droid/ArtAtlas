@@ -42,18 +42,14 @@ def find_top_relevant_results(query:str)->SearchResponse:
                 
                 query_with_related_concepts = query
 
+                results_from_essay   =  essay_retriever.search(query)
+
                 for concept in query_concepts:
                         if is_primary(concept.concept_id) and concept_has_artwork_mappings(concept.concept_id):
                                 query_with_related_concepts += f' OR {concept.concept_name}'
 
 
-
-                print(query_with_related_concepts)
-
-
                 results_from_artwork =  artwork_retriever.search(query_with_related_concepts)   
-
-                results_from_essay   =  essay_retriever.search(query_with_related_concepts)
 
                 combined_results.extend(results_from_essay)
                 combined_results.extend(results_from_artwork)
