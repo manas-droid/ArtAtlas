@@ -1,353 +1,254 @@
-# Art-Based Retrieval System — v2 Design Document
+# Art-Based Retrieval System (v2)
 
-## 1. Purpose of v2
+## Overview
 
-### Problem Statement
+**Art-Based Retrieval System v2** improves upon v1 by introducing **concept-aware retrieval** while preserving:
 
-In v1, the system successfully retrieves:
+* explainability
+* determinism
+* local-first execution
+* no LLM dependency
 
-* artworks (visual examples)
-* essay chunks (conceptual explanations)
+v2 treats **art-historical essays as structured knowledge** and uses them to subtly improve artwork retrieval for **abstract stylistic and thematic queries**.
 
-However, for **abstract stylistic queries** (e.g. *“dramatic lighting”*), artwork relevance is limited because:
+The system runs locally on **Ubuntu + PostgreSQL** and builds on a hybrid **lexical + semantic** retrieval pipeline.
 
-* artwork metadata rarely encodes visual techniques explicitly
-* concepts such as *chiaroscuro* live only in essays, not in artwork records
+---
+
+## Motivation
+
+### Problem in v1
+
+In v1:
+
+* Abstract queries (e.g. *“symbolism in still life”*, *“dramatic lighting”*) retrieved strong essays
+* Artwork results were often weak or loosely related because:
+
+  * museum metadata does not encode techniques or themes explicitly
+  * concepts like *vanitas* or *chiaroscuro* live only in essays
 
 ### v2 Objective
 
-> **Use essays as structured knowledge to improve artwork retrieval quality, while preserving explainability and avoiding LLM dependence.**
-
-v2 introduces **concept propagation** from essays to artworks.
+> **Use essays as structured knowledge to improve artwork retrieval quality — without modifying metadata or using LLMs.**
 
 ---
 
-## 2. Design Goals
+## Core Idea: Concept-Aware Retrieval
 
-### Functional Goals
-
-* Improve artwork relevance for abstract, stylistic queries
-* Preserve hybrid search behavior (lexical + semantic)
-* Maintain deterministic, explainable ranking
-
-### Non-Goals (Explicitly Out of Scope)
-
-* No LLM-generated text
-* No image-based feature extraction
-* No artist biographies
-* No full historical or ontological reasoning
-* No automatic concept discovery
-
----
-
-## 3. High-Level Architecture
-
-### v1 Architecture (Baseline)
-
-```
-Query
- ├─ Lexical Search (FTS)
- ├─ Semantic Search (Embeddings)
- └─ Fallback Logic
-      └─ Results: Artworks + Essays
-```
-
-### v2 Architecture (Extended)
-
-```
-Query
- ├─ Lexical Search (FTS)
- ├─ Semantic Search (Embeddings)
- ├─ Concept Matching
- │    ├─ Essay → Concept
- │    └─ Artwork → Concept
- └─ Concept-Aware Ranking
-      └─ Results: Better Artworks + Essays
-```
-
-v2 **extends** v1 — it does not replace it.
-
----
-
-## 4. Core v2 Concept Model
-
-### 4.1 Concept Definition
-
-A **concept** represents a reusable art-historical idea, such as:
-
-* a technique
-* a genre
-* a stylistic pattern
-
-Examples:
-
-* chiaroscuro
-* tenebrism
-* vanitas
-* still life
-* dramatic lighting
+v2 introduces a **concept layer** that sits between essays and artworks.
 
 Concepts are:
 
 * human-curated
 * limited in number
-* explainable
+* explicit and explainable
+
+They are used to:
+
+* propagate knowledge from essays to artworks (offline)
+* influence ranking and recall safely (online)
 
 ---
 
-### 4.2 Concept Table
+## Concept Model
+
+### Concept Types
+
+Concepts fall into three categories:
+
+* **genre** (e.g. Still Life, Vanitas)
+* **technique** (e.g. Chiaroscuro, Tenebrism)
+* **theme** (e.g. Symbolism, Realism)
+
+### Concept Table
 
 ```sql
-CREATE TABLE concept (
-    id SERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    concept_type TEXT NOT NULL  -- 'technique' | 'genre' | 'movement'
-);
+concept(id, name, type)
 ```
-
-Initial size:
-
-* 10–20 concepts total (v2 scope)
 
 ---
 
-## 5. Essay → Concept Mapping
+## Essay → Concept Mapping
 
-### Purpose
+Essays already *define* concepts.
 
-Essays already encode authoritative explanations of concepts.
-v2 makes this explicit.
-
-### Table: `essay_chunk_concept`
+Each essay (or essay chunk) is manually or semi-manually mapped to **1–3 concepts**.
 
 ```sql
-CREATE TABLE essay_chunk_concept (
-    essay_chunk_id INT REFERENCES essay_chunk(id),
-    concept_id INT REFERENCES concept(id),
-    PRIMARY KEY (essay_chunk_id, concept_id)
-);
+essay_concept(essay_id, concept_id)
 ```
 
-### Population Strategy (v2)
+Design choices:
 
-* Manual or semi-manual tagging
-* Each essay chunk:
-
-  * 1–3 associated concepts max
-* No automatic NLP extraction in v2
-
-### Rationale
-
-* Keeps noise low
-* Preserves explainability
-* Avoids overfitting or hallucinated concepts
+* No automatic NLP extraction
+* No ontology inference
+* Low noise, high authority
 
 ---
 
-## 6. Artwork → Concept Affinity
+## Artwork → Concept Mapping (Offline)
 
-### Motivation
+Artworks do not explicitly encode concepts.
 
-Artwork–concept affinity is computed using enriched textual surrogates for artworks (metadata + available curatorial descriptions). Direct visual inference is not attempted.
+v2 infers **artwork–concept affinity** offline using embeddings.
 
-Artwork–concept affinity in v2 relies on relative embedding alignment, not absolute semantic understanding. Concept scores are used strictly as weak, bounded ranking signals.
----
+### Offline Pipeline
 
-### 6.1 Offline Affinity Computation
+For each concept:
 
-For each artwork:
-
-1. Compute similarity to essay chunks linked to a concept
-2. Aggregate similarity (e.g. max or mean)
-3. Assign concept if similarity exceeds threshold
-
-This is an **offline batch process**.
-
----
-
-### 6.2 Artwork Concept Table
+1. Aggregate embeddings of essays mapped to the concept
+2. Build a **concept prototype embedding**
+3. Compare each artwork embedding to the prototype
+4. Store only high-confidence matches
 
 ```sql
-CREATE TABLE artwork_concept (
-    artwork_id INT REFERENCES artwork(id),
-    concept_id INT REFERENCES concept(id),
-    confidence_score FLOAT NOT NULL,
-    PRIMARY KEY (artwork_id, concept_id)
-);
+artwork_concept(artwork_id, concept_id, confidence_score)
 ```
 
-Constraints:
+Key properties:
 
-* Only high-confidence associations stored
-* Confidence is numeric and inspectable
+* Offline only
+* Deterministic
+* Thresholded (confidence ≥ 0.7)
+* Rebuildable
 
----
-
-### 6.3 Why Offline?
-
-* No runtime cost
-* Stable, reproducible results
-* Easy to debug and re-run
-* Avoids query-time complexity
+Concepts are **annotations**, not metadata.
 
 ---
 
-## 7. Query Processing in v2
+## Primary vs Secondary Concepts
 
-### 7.1 Concept Detection from Query
+Not all concepts are allowed to drive retrieval.
 
-At query time:
+### Primary Concepts
 
-1. Match query embedding against **concept-linked essay chunks**
-2. Identify top matching concepts
-3. Use concepts only as *ranking signals*, not filters
+Used for **query expansion** (artwork recall).
 
-No hard concept filtering is performed.
+Current primary set:
+
+* Vanitas
+* Still Life
+* Landscape
+* Genre Painting
+
+These answer:
+
+> *“What kind of artwork is the user looking for?”*
+
+### Secondary Concepts
+
+Used only for **re-ranking and explanation**.
+
+Examples:
+
+* Chiaroscuro
+* Tenebrism
+* Symbolism
+* Realism
+* Spatial Realism
+* Dutch Golden Age
+
+These explain *how* or *why*, not *what*.
 
 ---
 
-### 7.2 Concept-Aware Ranking
+## Query Flow in v2
 
-Final ranking score:
+### Step 1 — Base Retrieval (v1 behavior)
+
+* Lexical search (Postgres FTS)
+* Semantic search (pgvector)
+* Retrieve artworks and essays independently
+
+### Step 2 — Concept Detection (Query Side)
+
+* Detect concepts from query via essay embeddings
+* Assign confidence scores
+
+### Step 3 — Concept-Aware Artwork Expansion (Guarded)
+
+Artwork query expansion occurs **only if all conditions are met**:
+
+* concept confidence ≥ threshold
+* concept is **primary**
+* concept has **artwork mappings**
+
+Expansion is:
+
+* query-time only
+* limited (top 1–2 concepts)
+* never applied to essays
+
+### Step 4 — Concept-Aware Re-ranking
+
+Final score:
 
 ```
 final_score =
-    w1 * lexical_score
-  + w2 * semantic_score
-  + w3 * concept_support_score
+  w1 * lexical_score +
+  w2 * semantic_score +
+  w3 * concept_score
 ```
 
-Where:
+Essays:
 
-* `concept_support_score` reflects how strongly an artwork aligns with concepts relevant to the query
+* receive a small fixed boost if mapped to query concepts
 
-Weights are tuned conservatively:
+Artworks:
 
-* semantic remains dominant
-* concept provides *boost*, not replacement
+* receive a confidence-weighted boost based on concept overlap
 
 ---
 
-## 8. Explainability Guarantees
+## Explainability Guarantees
 
-v2 maintains explainability by:
+Every result can be explained using:
 
-* Explicit concept tables
-* Numeric confidence scores
-* Deterministic ranking logic
+* matched concepts
+* stored confidence scores
+* deterministic ranking logic
 
 Example explanation:
 
-> “This artwork ranked higher because it aligns strongly with the ‘chiaroscuro’ concept explained in retrieved essays.”
+> “This artwork ranked higher because it has a strong association with the ‘Vanitas’ concept detected in the query.”
 
-No black-box reasoning.
-
----
-
-## 9. API Impact
-
-### v2 API Additions (Non-Breaking)
-
-Optional fields added to artwork results:
-
-```json
-"concepts": [
-  {
-    "name": "chiaroscuro",
-    "confidence": 0.81
-  }
-]
-```
-
-Essays remain unchanged.
-
-Clients can ignore this field safely.
+No hidden inference.
 
 ---
 
-## 10. Data Scope in v2
+## Observed Improvements vs v1
 
-### Essays
+* Better coherence for genre + theme queries
+* Vanitas artworks surface for symbolic still-life queries
+* Reduced noise from lighting-only concepts
+* No regression on concrete or control queries
 
-* Still limited to **Dutch Golden Age**
-* No expansion to new movements yet
-
-### Artworks
-
-* Same Met Museum dataset as v1
-* Enriched via concept propagation
-
-This ensures:
-
-* controlled evaluation
-* clean comparison vs v1
+Improvements are **subtle but consistent**, by design.
 
 ---
 
-## 11. Evaluation Criteria
+## Explicit Non-Goals (Still Out of Scope)
 
-v2 is considered successful when:
-
-* Queries like **“dramatic lighting”** return:
-
-  * essays explaining the technique
-  * artworks that visually demonstrate it
-* Ranking improvements are observable
-* Behavior remains explainable
-* No regression in v1 query performance
-
----
-
-## 12. Known Limitations (Accepted)
-
-* Concepts are curated, not discovered
-* No image-level visual analysis
-* Some false positives expected at low confidence
-* No automatic concept taxonomy
-
-These are intentional tradeoffs.
-
----
-
-## 13. Roadmap Beyond v2 (Preview)
-
-### v3 Possibilities (Not Implemented)
-
+* LLM-generated text
+* Image feature extraction
+* Curatorial text scraping
 * Automatic concept discovery
-* Visual feature extraction
-* Artist-level concept aggregation
-* LLM-assisted explanations
-
-v2 does not assume or require these.
+* Ontologies or graphs
 
 ---
 
-## 14. Summary
+## Status
 
-v2 extends v1 by:
+v2 is **complete and frozen**
 
-* Treating essays as structured knowledge
-* Propagating conceptual understanding to artworks
-* Improving retrieval for abstract stylistic queries
-* Preserving explainability and system clarity
-
-The system remains:
-
-* local-first
-* deterministic
-* non-LLM-dependent
+No further tuning is planned without introducing **new data sources**.
 
 ---
 
-### One-Sentence Summary
+## One-Sentence Summary
 
-> **v2 transforms essays from passive explanations into active knowledge sources that improve artwork retrieval through explicit, explainable concept propagation.**
+> **v2 enhances artwork retrieval by using essays as structured, explainable knowledge while preserving metadata integrity and system determinism.**
 
 ---
 
-Next in line:
-
-* create **ER diagrams** for v2
-* write the **offline concept-assignment pipeline**
-* choose **similarity thresholds**
-* plan **v2 evaluation experiments**
+---
