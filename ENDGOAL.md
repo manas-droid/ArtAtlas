@@ -397,21 +397,3 @@ Create a portfolio-grade system that demonstrates:
 * **R3: Scale/performance locally**
 
   * Mitigation: batch embeddings; incremental indexing; cache; start small (few thousand objects + few hundred essays) for v1
-
----
-
-### 14) Milestones (practical build plan)
-
-1. **Week 1:** DB schema + Met ingestion + basic UI grid
-2. **Week 2:** Essay ingestion + chunking + lexical search
-3. **Week 3:** Embeddings + vector search + hybrid ranker
-4. **Week 4:** Wikidata linking + movement explorer page
-5. **Week 5:** Retrieval explanation view + polish for demo video
-
----
-
-If you want, I can also generate:
-
-* a concrete **SPARQL query set** for Wikidata movements/artists,
-* the initial **DB migrations** (Postgres + pgvector),
-* and a **repo folder structure** (backend/frontend/ingestion/shared types) tailored to Node.js + TypeScript on Ubuntu.
