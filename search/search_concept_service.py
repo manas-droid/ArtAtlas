@@ -1,5 +1,5 @@
 from utils.embeddings import encode_text
-from concept_data_pipeline.artwork_concept.insert_artwork_concept_data import (
+from concept_data_pipeline.artwork_concept.prototypes import (
     ConceptMatch,
     get_concept_prototypes,
     score_concepts_for_vector,

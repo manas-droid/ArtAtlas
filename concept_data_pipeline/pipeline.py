@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Iterable, Sequence
 
-from concept_data_pipeline.artwork_concept.insert_artwork_concept_data import (
+from concept_data_pipeline.artwork_concept.affinity import (
     ArtworkConceptRecord,
     generate_artwork_concept_affinities,
-    insert_artwork_concepts
+    insert_artwork_concepts,
 )
 from concept_data_pipeline.concept.insert_concept_data import (
     CURATED_CONCEPTS,

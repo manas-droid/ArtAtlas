@@ -1,5 +1,9 @@
 from search.retrievers import ArtworkRetriever, EssayRetriever
-from search.search_concept_service import detect_concept_from_query, concept_has_artwork_mappings
+from search.ranking import ConceptWeights, apply_concept_scores, merge_results
+from search.search_concept_service import (
+    concept_has_artwork_mappings,
+    detect_concept_from_query,
+)
 from .search_model import SearchResponse
 
 
@@ -7,97 +11,67 @@ artwork_retriever = ArtworkRetriever()
 essay_retriever = EssayRetriever()
 
 ESSAY_CONCEPT_BOOST = 0.3
-w1 = 0.20
-w2 = 0.65
-w3 = 0.15
+CONCEPT_WEIGHTS: ConceptWeights = (0.20, 0.65, 0.15)
 
-
-"""
-    "Vanitas",
-    "Still life",
-    "Landscape",
-    "Genre Painting",
-"""
+# Vanitas, Still life, Landscape, Genre Painting
 PRIMARY_CONCEPT_IDS = {2, 3, 4, 5}
 
-def is_primary(concept_id)->bool:
-        if concept_id in PRIMARY_CONCEPT_IDS:
-                return True
-        return False
+
+def _is_primary(concept_id: int) -> bool:
+    return concept_id in PRIMARY_CONCEPT_IDS
 
 
-def find_top_relevant_results(query:str)->SearchResponse:
-        if not query or  len(query.replace(" ", "")) == 0:
-                return {'message': 'InAppropriate Query', 'results': []}
+def _expand_query_with_concepts(
+    query: str, query_concepts
+) -> str:
+    expanded = query
+
+    for concept in query_concepts:
+        if _is_primary(concept.concept_id) and concept_has_artwork_mappings(
+            concept.concept_id
+        ):
+            expanded += f" OR {concept.concept_name}"
+    
+    print("Expanded query for artwork: ", expanded)
+    return expanded
 
 
-        query_concepts = detect_concept_from_query(query)
+def find_top_relevant_results(query: str) -> SearchResponse:
+    if not query or len(query.replace(" ", "")) == 0:
+        return {"message": "InAppropriate Query", "results": []}
 
-        combined_results = []
+    query_concepts = detect_concept_from_query(query)
+    essay_results = essay_retriever.search(query)
 
-        if query_concepts and len(query_concepts)  > 0:
-        
-                concept_ids:list[int] = [concept_score.concept_id for concept_score in query_concepts]
+    if query_concepts:
+        artwork_query = _expand_query_with_concepts(query, query_concepts)
+    else:
+        artwork_query = query
+    artwork_results = artwork_retriever.search(artwork_query)
 
-                
-                query_with_related_concepts = query
+    combined_results = merge_results(essay_results, artwork_results)
 
-                results_from_essay   =  essay_retriever.search(query)
+    if query_concepts:
+        apply_concept_scores(
+            results=combined_results,
+            query_concepts=query_concepts,
+            artwork_retriever=artwork_retriever,
+            essay_retriever=essay_retriever,
+            weights=CONCEPT_WEIGHTS,
+            essay_boost=ESSAY_CONCEPT_BOOST,
+        )
+    else:
+        print("No concept relations were found while querying ", query)
 
-                for concept in query_concepts:
-                        if is_primary(concept.concept_id) and concept_has_artwork_mappings(concept.concept_id):
-                                query_with_related_concepts += f' OR {concept.concept_name}'
+    combined_results.sort(key=lambda x: x["score"]["final_score"], reverse=True)
 
-
-                results_from_artwork =  artwork_retriever.search(query_with_related_concepts)   
-
-                combined_results.extend(results_from_essay)
-                combined_results.extend(results_from_artwork)
-
-                
-                for result in combined_results:
-                        concept_score = 0
-
-                        if result['result_type'] == 'artwork':
-                                artwork_concepts = artwork_retriever.get_concept_score(result['id'], concept_ids)
-                                matches = [
-                                        qc.confidence_score * ac.confidence_score
-                                        for qc in query_concepts
-                                        for ac in artwork_concepts
-                                        if qc.concept_id == ac.concept_id
-                                        ]
-
-                                if len(matches) >=2 :
-                                        concept_score = max(matches)
-                                elif len(query_concepts) == 1 and len(matches) == 1:
-                                        concept_score = matches[0]
-                                else:
-                                        concept_score = 0
-
-                        elif result['result_type'] == 'essay' and essay_retriever.check_if_essay_concept_exists(result['id'], concept_ids):
-                                concept_score = ESSAY_CONCEPT_BOOST
-
-                        result['score']['final_score'] = w1*result['score']['lexical_score'] + w2*result['score']['semantic_score'] + w3*concept_score
-
-        else:
-                results_from_artwork =  artwork_retriever.search(query)   
-                results_from_essay   =  essay_retriever.search(query)
-                combined_results.extend(results_from_essay)
-                combined_results.extend(results_from_artwork)
-
-
-                print("No concept relations were found while querying ", query)
-        
-        combined_results.sort( key=lambda x: x['score']["final_score"], reverse=True)
-
-                
-        return {
-                'query': query,
-                'message':'Search Successful', 
-                "metadata":{
-                'path_taken': 'lexical+vector',
-                'artworks_results': len(results_from_artwork),
-                'essay_results' : len(results_from_essay) 
-                },
-                'results':combined_results 
-        }
+    return {
+        "query": query,
+        "message": "Search Successful",
+        "metadata": {
+            "path_taken": "lexical+vector",
+            "artworks_results": len(artwork_results),
+            "essay_results": len(essay_results),
+        },
+        "results": combined_results,
+    }

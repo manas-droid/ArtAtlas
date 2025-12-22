@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from concept_data_pipeline.artwork_concept.insert_artwork_concept_data import ArtworkConceptRecord
+from concept_data_pipeline.artwork_concept.affinity import ArtworkConceptRecord
 from utils.config import HYBRID_SEARCH
 from search.hybrid_retriever import HybridRetriever
 from db.db_pool import get_connection
