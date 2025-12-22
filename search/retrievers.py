@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import Sequence
 
+from concept_data_pipeline.artwork_concept.insert_artwork_concept_data import ArtworkConceptRecord
 from utils.config import HYBRID_SEARCH
 from search.hybrid_retriever import HybridRetriever
+from db.db_pool import get_connection
 
 
 class ArtworkRetriever(HybridRetriever):
@@ -34,6 +36,27 @@ class ArtworkRetriever(HybridRetriever):
             },
         }
 
+    def _format_to_artwork_concept_record(self, artwork_concepts_row:Sequence):
+        artwork_id, concept_id, confidence_score = artwork_concepts_row
+        return ArtworkConceptRecord(artwork_id, concept_id, confidence_score)
+    
+    def get_concept_score(self, artwork_id: int, concept_ids: list[int] = ()) -> list[ArtworkConceptRecord]:
+        if not concept_ids:
+            return []
+        placeholders = ", ".join(["%s"] * len(concept_ids))
+        sql = f"""
+            SELECT artwork_id, concept_id, confidence_score
+            FROM artwork_concept
+            WHERE artwork_id = %s
+              AND concept_id IN ({placeholders})
+        """
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(sql, (artwork_id, *concept_ids))
+            rows = cur.fetchall()
+
+        return [self._format_to_artwork_concept_record(row) for row in rows]
+
 
 class EssayRetriever(HybridRetriever):
     def __init__(self) -> None:
@@ -63,3 +86,27 @@ class EssayRetriever(HybridRetriever):
                 "final_score": final_score,
             },
         }
+
+    def check_if_essay_concept_exists(self, essay_id:int, essay_concept_ids:list[int]):
+        if not essay_concept_ids:
+            return []
+
+        placeholders = ", ".join(["%s"] * len(essay_concept_ids))
+
+        sql = f"""
+                SELECT 1
+                FROM essay_concept
+                WHERE essay_id = %s
+                AND concept_id IN ({placeholders})
+                LIMIT 1;        
+                """
+        result:bool = False
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(sql, (essay_id, *essay_concept_ids))
+            temp = cur.fetchone()
+            if temp:
+                result = True if temp[0] == 1 else False
+
+        return result
+        

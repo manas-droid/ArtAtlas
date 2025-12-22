@@ -35,9 +35,49 @@ class _ConceptPrototype:
 
 
 @dataclass(frozen=True)
-class _ArtworkEmbedding:
+class ArtworkEmbedding:
     artwork_id: int
     vector: list[float]
+
+
+@dataclass(frozen=True)
+class ConceptMatch:
+    concept_id: int
+    concept_name: str | None
+    confidence_score: float
+    normalized_score: float
+    similarity: float
+
+@dataclass(frozen=True)
+class ConceptResponseForSearch(_ConceptPrototype):
+    concept_name: str
+
+
+def get_concept_prototypes(
+    db_pool: Any | None = None,
+) -> tuple[ConceptResponseForSearch, ...]:
+    """Return concept prototypes with their human-readable names for search."""
+    with (db_pool.connection() if db_pool else get_connection()) as conn:
+        concept_payload = _fetch_concept_vectors_with_names(conn)
+
+    prototypes: list[ConceptResponseForSearch] = []
+    for concept_id, payload in concept_payload.items():
+        vectors = payload["vectors"]
+        if not vectors:
+            continue
+        centroid = _mean_vector(vectors)
+        authority = _authority(len(vectors))
+        prototypes.append(
+            ConceptResponseForSearch(
+                concept_id=concept_id,
+                concept_name=payload["name"],
+                vector=centroid,
+                authority=authority,
+            )
+        )
+
+    return tuple(prototypes)
+
 
 def generate_artwork_concept_affinities(
     *,
@@ -103,6 +143,44 @@ def insert_artwork_concepts(
 # Core pipeline logic
 # ----------------------------
 
+def load_concept_prototypes(
+    *,
+    db_pool: Any | None = None,
+) -> tuple[_ConceptPrototype, ...]:
+    """Utility for fetching concept prototypes for online use."""
+    with (db_pool.connection() if db_pool else get_connection()) as conn:
+        concept_vectors = _fetch_concept_vectors(conn)
+    return _build_concept_prototypes(concept_vectors)
+
+
+def _fetch_concept_vectors_with_names(conn) -> dict[int, dict[str, Any]]:
+    """
+    Fetch concept names alongside their essay-derived embeddings.
+    """
+    sql = """
+        SELECT ecc.concept_id, c.name, e.embedding::float4[]
+        FROM essay_concept ecc
+        JOIN essay e ON e.id = ecc.essay_id
+        JOIN concept c ON c.id = ecc.concept_id
+        WHERE e.embedding IS NOT NULL
+    """
+
+    concept_vectors: dict[int, dict[str, Any]] = {}
+
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        for concept_id, name, embedding in cur.fetchall():
+            vector = _coerce_vector(embedding)
+            if not vector:
+                continue
+            payload = concept_vectors.setdefault(
+                int(concept_id), {"name": name, "vectors": []}
+            )
+            payload["vectors"].append(vector)
+
+    return concept_vectors
+
+
 def _fetch_concept_vectors(conn) -> dict[int, list[list[float]]]:
     """
     Fetch essay embeddings grouped by concept.
@@ -126,14 +204,14 @@ def _fetch_concept_vectors(conn) -> dict[int, list[list[float]]]:
     return concept_vectors
 
 
-def _fetch_artwork_embeddings(conn) -> tuple[_ArtworkEmbedding, ...]:
+def _fetch_artwork_embeddings(conn) -> tuple[ArtworkEmbedding, ...]:
     sql = """
         SELECT id, embedding::float4[]
         FROM artwork
         WHERE embedding IS NOT NULL
     """
 
-    artworks: list[_ArtworkEmbedding] = []
+    artworks: list[ArtworkEmbedding] = []
 
     with conn.cursor() as cur:
         cur.execute(sql)
@@ -141,7 +219,7 @@ def _fetch_artwork_embeddings(conn) -> tuple[_ArtworkEmbedding, ...]:
             vector = _coerce_vector(embedding)
             if vector:
                 artworks.append(
-                    _ArtworkEmbedding(
+                    ArtworkEmbedding(
                         artwork_id=int(artwork_id),
                         vector=vector,
                     )
@@ -175,47 +253,75 @@ def _build_concept_prototypes(
 
 def _score_artworks(
     *,
-    artworks: Sequence[_ArtworkEmbedding],
+    artworks: Sequence[ArtworkEmbedding],
     prototypes: Sequence[_ConceptPrototype],
     confidence_threshold: float,
     max_concepts_per_artwork: int = 2,
 ) -> tuple[ArtworkConceptRecord, ...]:
-
     results: list[ArtworkConceptRecord] = []
 
     for art in artworks:
-        scored: list[tuple[_ConceptPrototype, float]] = []
+        matches = score_concepts_for_vector(
+            vector=art.vector,
+            prototypes=prototypes,
+            confidence_threshold=confidence_threshold,
+            max_concepts=max_concepts_per_artwork,
+        )
 
-        for proto in prototypes:
-            sim = _cosine_similarity(art.vector, proto.vector)
-            scored.append((proto, sim))
-
-        max_similarity = max((s for _, s in scored), default=0.0)
-        if max_similarity <= 0:
-            continue
-
-        # compute confidence
-        confidences: list[tuple[_ConceptPrototype, float]] = []
-        for proto, sim in scored:
-            normalized = sim / max_similarity
-            confidence = normalized * proto.authority
-            if confidence >= confidence_threshold:
-                confidences.append((proto, confidence))
-
-        # 👇 ENFORCE SPARSITY
-        confidences.sort(key=lambda x: x[1], reverse=True)
-        confidences = confidences[:max_concepts_per_artwork]
-
-        for proto, confidence in confidences:
+        for match in matches:
             results.append(
                 ArtworkConceptRecord(
                     artwork_id=art.artwork_id,
-                    concept_id=proto.concept_id,
-                    confidence_score=confidence,
+                    concept_id=match.concept_id,
+                    confidence_score=match.confidence_score,
                 )
             )
 
     return tuple(results)
+
+
+def score_concepts_for_vector(
+    *,
+    vector: Sequence[float],
+    prototypes: Sequence[_ConceptPrototype],
+    confidence_threshold: float = MIN_CONFIDENCE_SCORE,
+    max_concepts: int | None = None,
+    concept_lookup: dict[int, str] | None = None,
+) -> tuple[ConceptMatch, ...]:
+    """Rank concept prototypes against a single embedding vector."""
+    if not prototypes:
+        return ()
+
+    scored: list[tuple[_ConceptPrototype, float]] = []
+    for proto in prototypes:
+        similarity = _cosine_similarity(vector, proto.vector)
+        scored.append((proto, similarity))
+
+    max_similarity = max((s for _, s in scored), default=0.0)
+    if max_similarity <= 0:
+        return ()
+
+    matches: list[ConceptMatch] = []
+    for proto, similarity in scored:
+        normalized = similarity / max_similarity if max_similarity else 0.0
+        confidence = normalized * proto.authority
+        if confidence < confidence_threshold:
+            continue
+        matches.append(
+            ConceptMatch(
+                concept_id=proto.concept_id,
+                concept_name=(concept_lookup or {}).get(proto.concept_id),
+                confidence_score=confidence,
+                normalized_score=normalized,
+                similarity=similarity,
+            )
+        )
+
+    matches.sort(key=lambda match: match.confidence_score, reverse=True)
+    if max_concepts is not None:
+        matches = matches[:max_concepts]
+
+    return tuple(matches)
 
 
 # ----------------------------
@@ -272,4 +378,3 @@ def _chunked(
 
     for i in range(0, len(payload), batch_size):
         yield payload[i : i + batch_size]
-
