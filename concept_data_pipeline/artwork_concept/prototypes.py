@@ -19,13 +19,15 @@ class ConceptPrototype:
     authority: float
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConceptMatch:
     concept_id: int
     concept_name: str | None
     confidence_score: float
     normalized_score: float
     similarity: float
+    concept_type: str = "secondary"  # "primary" | "secondary"
+    used_for_expansion: bool = False
 
 
 @dataclass(frozen=True)

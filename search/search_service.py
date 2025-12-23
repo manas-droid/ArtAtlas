@@ -31,6 +31,7 @@ def _expand_query_with_concepts(
             concept.concept_id
         ):
             expanded += f" OR {concept.concept_name}"
+            concept.used_for_expansion = True
     
     print("Expanded query for artwork: ", expanded)
     return expanded
@@ -41,6 +42,8 @@ def find_top_relevant_results(query: str) -> SearchResponse:
         return {"message": "InAppropriate Query", "results": []}
 
     query_concepts = detect_concept_from_query(query)
+    for concept in query_concepts:
+        concept.concept_type = "primary" if _is_primary(concept.concept_id) else "secondary"
     essay_results = essay_retriever.search(query)
 
     if query_concepts:
