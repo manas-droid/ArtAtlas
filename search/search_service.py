@@ -4,7 +4,7 @@ from search.search_concept_service import (
     concept_has_artwork_mappings,
     detect_concept_from_query,
 )
-from .search_model import SearchResponse
+from .search_model import SearchContext, SearchResponse
 
 
 artwork_retriever = ArtworkRetriever()
@@ -66,6 +66,9 @@ def find_top_relevant_results(query: str) -> SearchResponse:
     else:
         print("No concept relations were found while querying ", query)
 
+    search_context = SearchContext(artworks=artwork_results, essays=essay_results, detected_concepts=query_concepts, score= combined_results['score'])
+
+    
     combined_results.sort(key=lambda x: x["score"]["final_score"], reverse=True)
 
     return {
