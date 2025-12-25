@@ -1,6 +1,6 @@
-import type { Artwork, Concept, ExplanationBlock, SearchModel } from "./search.model";
+import type { Artwork, Concept, ExplanationBlock, ExplanationModel } from "./explanation.model";
 
-export const transformResponseToUIModel = (apiResponse: any): SearchModel => {
+export const transformResponseToExplanation = (apiResponse: any): ExplanationModel => {
     const requestedQuery = typeof apiResponse?.query === "string" ? apiResponse.query : "";
 
     const graph = apiResponse?.explanation_graph ?? {};
@@ -92,10 +92,14 @@ const buildExplanationBlocks = (edges: any[], nodes: any[], results: any[]): Exp
         });
     });
 
+    if(result.length > 1){
+        result.sort((a:ExplanationBlock, b:ExplanationBlock)=> b.concept.confidenceValue - a.concept.confidenceValue);
+    }
+    
     return result;
 };
 
-function transformConfidenceToString(confidence: number): string {
+export function transformConfidenceToString(confidence: number): string {
     const value = Number.isFinite(confidence) ? confidence : 0;
 
     if (value >= 0.85) return "Very High";

@@ -1,5 +1,5 @@
 
-export type SearchModel = {
+export type ExplanationModel = {
     query:string;
     explanationBlocks: ExplanationBlock[]
     metadata: MetaData
