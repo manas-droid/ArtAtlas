@@ -1,3 +1,4 @@
+from explanation.graph.graph_validation import validate_graph_objects
 from search.retrievers import ArtworkRetriever, EssayRetriever
 from search.ranking import ConceptWeights, apply_concept_scores, merge_results
 from search.search_concept_service import (
@@ -6,6 +7,8 @@ from search.search_concept_service import (
 )
 from .search_model import SearchContext, SearchResponse
 
+from explanation.evidence.evidence_builder import build_evidence_bundle
+from explanation.graph.build_explanation_graph import build_explanation_graph
 
 artwork_retriever = ArtworkRetriever()
 essay_retriever = EssayRetriever()
@@ -33,7 +36,6 @@ def _expand_query_with_concepts(
             expanded += f" OR {concept.concept_name}"
             concept.used_for_expansion = True
     
-    print("Expanded query for artwork: ", expanded)
     return expanded
 
 
@@ -66,9 +68,19 @@ def find_top_relevant_results(query: str) -> SearchResponse:
     else:
         print("No concept relations were found while querying ", query)
 
-    search_context = SearchContext(artworks=artwork_results, essays=essay_results, detected_concepts=query_concepts, score= combined_results['score'])
+    search_context = SearchContext(artworks=artwork_results, essays=essay_results, detected_concepts=query_concepts)
+    list_of_evidence_bundles = build_evidence_bundle(search_context)
 
-    
+    nodes, edges = build_explanation_graph(query=query, detected_concepts=query_concepts, evidence_bundles=list_of_evidence_bundles)
+
+    graph_nodes = list(nodes.values())
+    validation_result = validate_graph_objects(nodes=graph_nodes, edges=edges)
+
+    if validation_result.errors:
+        print("Graph Errors: " , validation_result.errors)
+        nodes = None 
+        edges= None
+
     combined_results.sort(key=lambda x: x["score"]["final_score"], reverse=True)
 
     return {
@@ -80,4 +92,9 @@ def find_top_relevant_results(query: str) -> SearchResponse:
             "essay_results": len(essay_results),
         },
         "results": combined_results,
+        "explanation_graph": {
+            "nodes": list(graph_nodes if nodes else {}),
+            "edges": edges,
+        }
+
     }
