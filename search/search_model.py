@@ -17,4 +17,3 @@ class SearchContext:
     artworks:list[dict]
     essays: list[dict]
     detected_concepts: tuple[ConceptMatch]
-    scores: dict

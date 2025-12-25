@@ -113,6 +113,46 @@ def score_concepts_for_vector(
 
     return tuple(matches)
 
+"""
+    Compute cosine similarity between specific artworks and concept prototypes.
+
+    Returns list of tuple : (artwork_id, concept_id, similarity)
+"""
+
+def compute_artwork_concept_similarities(
+    artwork_ids: Sequence[int],
+    concept_ids: Sequence[int],
+    *,
+    db_pool: Any | None = None,
+) -> list[tuple[int, int, float]]:
+    
+    if not artwork_ids or not concept_ids:
+        return []
+
+    prototypes = [
+        proto
+        for proto in get_concept_prototypes(db_pool=db_pool)
+        if proto.concept_id in concept_ids
+    ]
+
+    if not prototypes:
+        return []
+
+    artworks = _fetch_artwork_embeddings(artwork_ids, db_pool=db_pool)
+
+    if not artworks:
+        return []
+
+    similarities: list[tuple[int, int, float]] = []
+
+    for artwork_id, art_vector in artworks:
+        for proto in prototypes:
+            similarity = _cosine_similarity(art_vector, proto.vector)
+            if similarity >= 0.6:
+                similarities.append((artwork_id, proto.concept_id, similarity))
+
+    return similarities
+
 
 def _fetch_concept_vectors_with_names(conn) -> dict[int, dict[str, Any]]:
     """
@@ -186,6 +226,23 @@ def _build_concept_prototypes(
         )
 
     return tuple(prototypes)
+
+
+def _fetch_artwork_embeddings(
+    artwork_ids: Sequence[int], *, db_pool: Any | None = None
+) -> list[tuple[int, list[float]]]:
+    with (db_pool.connection() if db_pool else get_connection()) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, embedding::float4[]
+                FROM artwork
+                WHERE id = ANY(%s)
+                """,
+                (list(artwork_ids),),
+            )
+            rows = cur.fetchall()
+    return [(int(row[0]), coerce_vector(row[1])) for row in rows if row[1]]
 
 
 def _mean_vector(vectors: Sequence[Sequence[float]]) -> list[float]:
