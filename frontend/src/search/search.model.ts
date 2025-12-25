@@ -24,6 +24,8 @@ export type Artwork = {
     supportStrengthValue : number    
     provenance:string
     whyThisArtwork:string
+    imageUrl : string
+    title:string
 }
 
 export type Concept = {

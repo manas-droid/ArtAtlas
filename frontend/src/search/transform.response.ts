@@ -6,8 +6,9 @@ export const transformResponseToUIModel = (apiResponse: any): SearchModel => {
     const graph = apiResponse?.explanation_graph ?? {};
     const edges = ensureArray(graph.edges);
     const nodes = ensureArray(graph.nodes);
+    const results = ensureArray(apiResponse.results);
 
-    const explanationBlocks = buildExplanationBlocks(edges, nodes);
+    const explanationBlocks = buildExplanationBlocks(edges, nodes, results);
 
     return {
         explanationBlocks,
@@ -19,9 +20,10 @@ export const transformResponseToUIModel = (apiResponse: any): SearchModel => {
     };
 };
 
-const buildExplanationBlocks = (edges: any[], nodes: any[]): ExplanationBlock[] => {
+const buildExplanationBlocks = (edges: any[], nodes: any[], results: any[]): ExplanationBlock[] => {
     const concepts: any[] = nodes.filter((node: any) => node?.node_type === "concept");
     const result: ExplanationBlock[] = [];
+    const allArtworks: any[] = results.filter((res) => res?.result_type === "artwork");
 
     concepts.forEach((concept: any) => {
         const conceptEdge = edges.find(
@@ -58,12 +60,24 @@ const buildExplanationBlocks = (edges: any[], nodes: any[]): ExplanationBlock[] 
                 if (!artworkNode) return null;
 
                 const confidenceValue = toNumber(edge.confidence);
+                const artworkRefId = toNumber(artworkNode.ref_id, NaN);
+                if (!Number.isFinite(artworkRefId)) return null;
+
+                const art = allArtworks.find((item) => toNumber(item?.id, NaN) === artworkRefId);
+                if (!art) return null;
+
+                const imageUrl = safeString(art.image_url);
+                const title = safeString(art.title, "Untitled artwork");
+
+
                 return {
-                    artworkId: toNumber(artworkNode.ref_id),
+                    artworkId: artworkRefId,
                     provenance: edge?.provenance ?? "",
                     supportStrengthValue: confidenceValue,
                     supportStrengthLabel: transformConfidenceToString(confidenceValue),
                     whyThisArtwork: explainWhyThisArtworks(edge?.provenance, concept?.label ?? ""),
+                    imageUrl,
+                    title,
                 };
             })
             .filter(Boolean) as Artwork[];
@@ -103,4 +117,8 @@ function ensureArray<T>(value: T[] | unknown): T[] {
 function toNumber(value: unknown, fallback = 0): number {
     const parsed = typeof value === "string" ? Number(value) : value;
     return Number.isFinite(parsed) ? (parsed as number) : fallback;
+}
+
+function safeString(value: unknown, fallback = ""): string {
+    return typeof value === "string" && value.trim().length > 0 ? value : fallback;
 }
