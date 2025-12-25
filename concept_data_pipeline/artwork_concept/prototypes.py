@@ -118,6 +118,7 @@ def score_concepts_for_vector(
 
     Returns list of tuple : (artwork_id, concept_id, similarity)
 """
+MAPPING_CONFIDENCE_THRESHOLD = 0.6
 
 def compute_artwork_concept_similarities(
     artwork_ids: Sequence[int],
@@ -148,7 +149,7 @@ def compute_artwork_concept_similarities(
     for artwork_id, art_vector in artworks:
         for proto in prototypes:
             similarity = _cosine_similarity(art_vector, proto.vector)
-            if similarity >= 0.6:
+            if similarity >= MAPPING_CONFIDENCE_THRESHOLD:
                 similarities.append((artwork_id, proto.concept_id, similarity))
 
     return similarities

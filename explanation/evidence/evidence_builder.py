@@ -30,14 +30,9 @@ def get_bundled_artworks_per_concept(artworks:list[dict], concepts:tuple[Concept
 
     artwork_concept_similarities = compute_artwork_concept_similarities(artwork_ids=artwork_ids, concept_ids=[concept.concept_id for concept in concepts])
     
-    
     concept_artwork_support = defaultdict(list[ArtworkEvidence])
 
     for artwork_concept_similarity in artwork_concept_similarities:
-
-        if artwork_concept_similarity[2] < MAPPING_CONFIDENCE_THRESHOLD: 
-            continue
-
         concept_artwork_support[artwork_concept_similarity[1]].append(ArtworkEvidence(artwork_id=artwork_concept_similarity[0], mapping_confidence=artwork_concept_similarity[2],provenance="embedding_similarity"))
 
     return concept_artwork_support
