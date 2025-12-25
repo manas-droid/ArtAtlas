@@ -9,6 +9,21 @@ While v2 focused on *what* to retrieve (concept-aware ranking with strict determ
 This version does **not** change retrieval logic. Instead, it structures existing results into explicit, inspectable evidence artifacts.
 
 ---
+### UI
+
+## Full Result Tab:
+
+![Full Result Tab](/media/full-results-tab.png "Full Result Tab")
+
+
+
+
+## Explanation Tab:
+![Explanation Tab](/media/explanation-tab.png "Explanation Tab")
+
+
+
+
 
 ### Motivation
 
@@ -108,7 +123,6 @@ The existing search endpoint is extended to return:
 {
   "query": "...",
   "ranked_results": [...],
-  "evidence_bundles": [...],
   "explanation_graph": {
     "nodes": [...],
     "edges": [...]
@@ -117,16 +131,6 @@ The existing search endpoint is extended to return:
 ```
 
 The frontend renders these artifacts *as-is* and does not derive additional logic.
-
----
-
-### Design Principles
-
-* **Determinism over generation**
-* **Structure before polish**
-* **Explainability as data, not prose**
-* **API-first, UI-light**
-* **Incremental evolution by version**
 
 ---
 
