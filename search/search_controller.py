@@ -1,7 +1,10 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from .search_service import find_top_relevant_results
 
 app = Flask(__name__)
+
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
 
 @app.route('/api/search', methods=['GET'] )
