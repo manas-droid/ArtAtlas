@@ -1,11 +1,32 @@
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Literal, Sequence
 
 from concept_data_pipeline.artwork_concept.affinity import ArtworkConceptRecord
 from utils.config import HYBRID_SEARCH
 from search.hybrid_retriever import HybridRetriever
 from db.db_pool import get_connection
+
+
+def compute_retrieval_trace(matched_lexemes:list[str], lexical_source:Literal["essay_text", "aggregated_metadata"] , semantic_score:float, embedding_source:Literal["essay_chunk", "artwork_embedding"]):
+    
+    if matched_lexemes and len(matched_lexemes) > 0:
+        return {
+            "lexical_match": {
+                "source" : lexical_source,
+                "matched_lexemes":matched_lexemes
+            },
+            "semantic_match": {
+                "similarity": semantic_score,
+                "source" : embedding_source
+            }
+        }
+    return {
+        "semantic_match" : {
+            "similarity" : semantic_score,
+            "source" : embedding_source
+        }
+    }
 
 
 class ArtworkRetriever(HybridRetriever):
@@ -18,11 +39,16 @@ class ArtworkRetriever(HybridRetriever):
             limit_vector=HYBRID_SEARCH.artwork_vector_limit,
         )
 
+
     def _build_payload(self, fields: Sequence,
                        semantic_score: float,
                        lexical_score: float,
-                       final_score: float) -> dict:
+                       final_score: float,
+                       matched_terms=None) -> dict:
         artwork_id, title, artist, image_url = fields
+
+        retrieval_trace:dict = compute_retrieval_trace(matched_terms, 'aggregated_metadata', semantic_score, 'artwork_embedding') 
+
         return {
             "result_type": "artwork",
             "id": artwork_id,
@@ -34,6 +60,7 @@ class ArtworkRetriever(HybridRetriever):
                 "semantic_score": semantic_score,
                 "final_score": final_score,
             },
+            "retrieval_trace" : retrieval_trace
         }
 
     def _format_to_artwork_concept_record(self, artwork_concepts_row:Sequence):
@@ -71,8 +98,12 @@ class EssayRetriever(HybridRetriever):
     def _build_payload(self, fields: Sequence,
                        semantic_score: float,
                        lexical_score: float,
-                       final_score: float) -> dict:
+                       final_score: float,
+                       matched_terms=None) -> dict:
         essay_id, essay_title, chunk_text, chunk_index, source = fields
+
+        retrieval_trace:dict = compute_retrieval_trace(matched_terms, 'essay_text', semantic_score, 'essay_chunk') 
+
         return {
             "result_type": "essay",
             "id": essay_id,
@@ -85,6 +116,7 @@ class EssayRetriever(HybridRetriever):
                 "semantic_score": semantic_score,
                 "final_score": final_score,
             },
+            "retrieval_trace" : retrieval_trace
         }
 
     def check_if_essay_concept_exists(self, essay_id:int, essay_concept_ids:list[int]):
