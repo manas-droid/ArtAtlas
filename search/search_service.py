@@ -52,7 +52,7 @@ def find_top_relevant_results(query: str) -> SearchResponse:
         artwork_query = _expand_query_with_concepts(query, query_concepts)
     else:
         artwork_query = query
-    print(artwork_query)
+
     artwork_results = artwork_retriever.search(artwork_query)
 
     combined_results = merge_results(essay_results, artwork_results)
@@ -92,5 +92,9 @@ def find_top_relevant_results(query: str) -> SearchResponse:
             "artworks_results": len(artwork_results),
             "essay_results": len(essay_results),
         },
-        "results": combined_results
+        "results": combined_results,
+        "explanation_graph": {
+            "nodes": list(graph_nodes if nodes else {}),
+            "edges": edges,
+        }
     }
