@@ -30,11 +30,28 @@ class HybridRetriever:
 
     def _lexical_sql(self) -> str:
         return f"""
-            SELECT id, ts_rank(searchable_tsv, websearch_to_tsquery('english', %s)) AS lexical_score
-            FROM {self.table}
-            WHERE searchable_tsv @@ websearch_to_tsquery('english', %s)
-            ORDER BY ts_rank(searchable_tsv, websearch_to_tsquery('english', %s)) DESC
-            LIMIT {self.lexical_limit};
+            WITH search_results AS (
+            SELECT 
+                id, 
+                searchable_tsv,
+                ts_rank(searchable_tsv, query) AS lexical_score,
+                query AS original_query
+            FROM {self.table}, websearch_to_tsquery('english', %s) AS query
+            WHERE searchable_tsv @@ query
+            ORDER BY lexical_score DESC
+            LIMIT {self.lexical_limit}
+        )
+        SELECT 
+            id,
+            lexical_score,
+            ARRAY(
+                SELECT DISTINCT lex
+                FROM unnest(tsvector_to_array(searchable_tsv)) AS lex
+                WHERE lex IN (
+                    SELECT unnest(tsvector_to_array(to_tsvector('english', %s)))
+                )
+            ) AS matched_terms
+        FROM search_results;
         """
 
     def _vector_sql(self, filtered: bool) -> str:
@@ -57,25 +74,31 @@ class HybridRetriever:
             final_score *= self.weights.fallback_penalty
         return final_score
 
-    def _format_result(self, row: Sequence, lexical_score_map: dict[int, float]) -> dict:
+    def _format_result(self, row: Sequence, lexical_score_map: dict[int, dict]) -> dict:
         *fields, semantic_score = row
         record_id = fields[0]
-        lexical_score = lexical_score_map.get(record_id, 0.0)
+        lexical_info = lexical_score_map.get(record_id, {"score": 0.0, "matched_terms": []})
+        lexical_score = lexical_info.get("score", 0.0)
+        matched_terms = lexical_info.get("matched_terms", [])
         final_score = self._score(semantic_score, lexical_score)
-        return self._build_payload(fields, semantic_score, lexical_score, final_score)
+        return self._build_payload(fields, semantic_score, lexical_score, final_score, matched_terms)
 
     def _build_payload(self, fields: Sequence,
                        semantic_score: float,
                        lexical_score: float,
-                       final_score: float) -> dict:
+                       final_score: float,
+                       matched_terms: Sequence[str] | None = None) -> dict:
         raise NotImplementedError
 
     def search(self, query: str) -> list[dict]:
         query_vector = encode_text(query)
         with get_connection() as conn, conn.cursor() as cur:
-            cur.execute(self._lexical_sql(), (query, query, query))
+            cur.execute(self._lexical_sql(), (query,query))
             lexical_rows = cur.fetchall()
-            lexical_score_map = {row[0]: row[1] for row in lexical_rows}
+            lexical_score_map = {
+                row[0]: {"score": row[1], "matched_terms": row[2] or []}
+                for row in lexical_rows
+            }
             lexical_ids = list(lexical_score_map.keys())
 
             if lexical_ids:

@@ -1,4 +1,4 @@
-import { transformApiResponse, type UIModel } from "../transform.api.response"
+import { transformApiResponse, type UIModel } from "./transform.api.response"
 
 const URL:string = 'http://localhost:8080/api/search'
 

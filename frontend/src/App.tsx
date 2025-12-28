@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import './App.css'
-import { getQueryResponse } from './explanation/explanation.service'
+import { getQueryResponse } from './search.service'
 import { FullResultsPanel } from './components/FullResultsPanel'
 import { ExplanationPanel } from './components/ExplanationPanel'
 import type { UIModel } from './transform.api.response'

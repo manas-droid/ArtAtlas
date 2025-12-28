@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Any
 from concept_data_pipeline.artwork_concept.prototypes import ConceptMatch, compute_artwork_concept_similarities
-from explanation.evidence.evidence_model import ArtworkEvidence, EvidenceBundle, Justification
+from explanation.evidence.evidence_model import ArtworkEvidence, EvidenceBundle
 from search.search_model import SearchContext
 from db.db_pool import get_connection
 
@@ -47,13 +47,6 @@ def calculate_evidence_bundle_confidence(concept_artwork_support: list[ArtworkEv
     return sum_of_artwork_mapping_conf/len(concept_artwork_support)
 
 
-def form_justification_edges(artwork_bundle_list:  list[ArtworkEvidence])->list[Justification]:
-    justification_list:list[Justification] = []
-
-    for artwork in artwork_bundle_list:
-        justification_list.append(Justification(justification_type="artwork_supports_concept", confidence=artwork.mapping_confidence, source_id=artwork.artwork_id, provenance=artwork.provenance))
-
-    return justification_list
 
 def build_evidence_bundle(search_context: SearchContext)->list[EvidenceBundle]:
 
@@ -69,7 +62,6 @@ def build_evidence_bundle(search_context: SearchContext)->list[EvidenceBundle]:
         evidence_bundle = EvidenceBundle(bundled_artworks=artwork_bundle_list, 
                                          evidence_id=f"bundle__concept__{concept_id}", 
                                          evidence_confidence=calculate_evidence_bundle_confidence(artwork_bundle_list),
-                                         justification_edges= form_justification_edges(artwork_bundle_list),
                                          primary_concept=concept_id
                                         )    
         

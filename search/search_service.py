@@ -52,6 +52,7 @@ def find_top_relevant_results(query: str) -> SearchResponse:
         artwork_query = _expand_query_with_concepts(query, query_concepts)
     else:
         artwork_query = query
+
     artwork_results = artwork_retriever.search(artwork_query)
 
     combined_results = merge_results(essay_results, artwork_results)
@@ -96,5 +97,4 @@ def find_top_relevant_results(query: str) -> SearchResponse:
             "nodes": list(graph_nodes if nodes else {}),
             "edges": edges,
         }
-
     }
