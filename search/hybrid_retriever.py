@@ -36,7 +36,7 @@ class HybridRetriever:
                 searchable_tsv,
                 ts_rank(searchable_tsv, query) AS lexical_score,
                 query AS original_query
-            FROM {self.table}, plainto_tsquery('english', %s) AS query
+            FROM {self.table}, websearch_to_tsquery('english', %s) AS query
             WHERE searchable_tsv @@ query
             ORDER BY lexical_score DESC
             LIMIT {self.lexical_limit}
