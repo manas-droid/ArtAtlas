@@ -22,6 +22,10 @@ export function ArtworkResultCard({ artwork }: ArtworkCardProps) {
         <p className="lead">{artwork.artworkTitle || 'Untitled artwork'}</p>
         <p className="body">{artwork.artistName || 'Unknown artist'}</p>
         <p className="meta">Score: {score.toFixed(2)}</p>
+        <details className="why-section">
+          <summary>Why do I see this result?</summary>
+          <WhyTrace trace={artwork.retrievalTrace} fallbackLabel={artwork.confidenceLabel} />
+        </details>
       </div>
     </article>
   )
@@ -42,7 +46,48 @@ export function EssayResultCard({ essay }: EssayCardProps) {
         <p className="meta">
           Source: {essay.source} · Score: {score.toFixed(2)}
         </p>
+        <details className="why-section">
+          <summary>Why do I see this result?</summary>
+          <WhyTrace trace={essay.retrievalTrace} fallbackLabel={essay.confidenceLabel} />
+        </details>
       </div>
     </article>
+  )
+}
+
+type WhyTraceProps = {
+  trace: ArtworkResultModel['retrievalTrace'] | EssayResultModel['retrievalTrace']
+  fallbackLabel: string
+}
+
+function WhyTrace({ trace, fallbackLabel }: WhyTraceProps) {
+  const lexical = trace?.lexicalMatch
+  const semantic = trace?.semanticalMatch
+
+  if (!lexical && !semantic) {
+    return (
+      <p className="body">
+        This result aligns with your query with {fallbackLabel.toLowerCase()} confidence.
+      </p>
+    )
+  }
+
+  return (
+    <div className="body">
+      {lexical && (
+        <div className="meta">
+          <p className="lead">Lexical match</p>
+          <p className="meta">• <b>Matched query terms</b>: {lexical.matchedLexemes?.join(', ') || 'N/A'}</p>
+          <p className="meta">• <b>Source</b>: {lexical.source || 'N/A'}</p>
+        </div>
+      )}
+      {semantic && (
+        <div className="meta" style={{ marginTop: '6px' }}>
+          <p className="lead">Semantic similarity</p>
+          <p className="meta">• <b>Similarity score</b>: {semantic.similarityValue.toFixed(2)} ({semantic.similarityLable})</p>
+          <p className="meta">• <b>Embedding source</b>: {semantic.source || 'N/A'}</p>
+        </div>
+      )}
+    </div>
   )
 }

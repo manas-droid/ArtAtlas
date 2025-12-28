@@ -221,6 +221,31 @@
   color: #0f172a;
 }
 
+.why-section {
+  margin-top: 6px;
+}
+
+.why-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f172a;
+  list-style: none;
+}
+
+.why-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.why-section summary::after {
+  content: '▼';
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+}
+
+.why-section[open] summary::after {
+  content: '▲';
+}
 .meta,
 .source {
   color: #6b7280;
