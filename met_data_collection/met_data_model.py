@@ -16,6 +16,7 @@ class ObjectResponse(TypedDict):
     objectURL:str
     title: str
     department: str
+    tags: list
 
 
 

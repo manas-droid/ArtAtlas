@@ -21,15 +21,29 @@ BATCH_SIZE = INGESTION.artwork_batch_size
 
 
 def build_searchable_text(artwork:ArtworkModel):
-    fields = [
-        artwork['title'],
-        artwork['artistDisplayName'],
-        artwork['objectDate'],
-        artwork['medium'],
-        artwork['culture'],
-        artwork['department']
-    ]
-    return " ".join([f for f in fields if f])
+    parts = []
+
+    if artwork.get("title"):
+        parts.append(f"__title__ {artwork['title']}")
+
+    if artwork.get("artistDisplayName"):
+        parts.append(f"__artist__ {artwork['artistDisplayName']}")
+
+    if artwork.get("medium"):
+        parts.append(f"__medium__ {artwork['medium']}")
+
+    if artwork.get("culture"):
+        parts.append(f"__culture__ {artwork['culture']}")
+
+    if artwork.get("department"):
+        parts.append(f"__department__ {artwork['department']}")
+    
+    if artwork.get("tags"):
+        tags = "; ".join(t["term"] for t in artwork["tags"])
+        parts.append(f"__tags__ {tags}")
+        
+
+    return " \n".join(parts)
 
 
 
