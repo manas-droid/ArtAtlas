@@ -34,7 +34,7 @@ def save_essay_response_to_db(essay_response):
     for chunk in essay_response['chunks']:
         row_tuple = (
             essay_response['essay_title'],
-            essay_response['essay_type'].name,
+            essay_response['essay_type'].value,
             essay_response['source'],
             essay_response['source_url'],
             chunk,

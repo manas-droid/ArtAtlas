@@ -1,15 +1,15 @@
-## ArtAtlas v3.0 — Evidence Bundles & Explanation Graph
+# ArtAtlas
 
-### Overview
+**ArtAtlas** is a local-first, explainable art retrieval system designed to answer *why* specific artworks support art-historical ideas — not just *what* matches a query.
 
-v3.0 introduces **Evidence Bundles** and a **Query-Scoped Explanation Graph** as first-class outputs of the ArtAtlas retrieval pipeline.
+The system prioritizes:
 
-While v2 focused on *what* to retrieve (concept-aware ranking with strict determinism), v3.0 focuses on *why* a given set of results together forms a valid, defensible answer.
+* deterministic retrieval
+* traceable evidence
+* scoped, versioned evolution
+* no black-box reasoning or LLM-generated explanations
 
-This version does **not** change retrieval logic. Instead, it structures existing results into explicit, inspectable evidence artifacts.
-
----
-### UI
+ArtAtlas runs fully locally on Ubuntu using PostgreSQL + pgvector.
 
 ## Full Result Tab:
 
@@ -22,120 +22,232 @@ This version does **not** change retrieval logic. Instead, it structures existin
 ![Explanation Tab](/media/explanation-tab.png "Explanation Tab")
 
 
+---
 
+## Design Philosophy
 
+ArtAtlas is built incrementally.
+Each version introduces **one flagship capability**, is **explicitly frozen**, and serves as a stable foundation for the next.
 
-### Motivation
-
-Traditional retrieval systems return ranked lists.
-Even explainable systems typically justify results *individually*.
-
-However, art-historical reasoning relies on **structured evidence**, where:
-
-* artworks,
-* stylistic or thematic concepts,
-* and authoritative textual sources
-  work together to support an interpretation.
-
-v3.0 addresses this gap by making **evidence and reasoning structure explicit**, without introducing generative models or speculative inference.
+> If a system cannot explain *why* it retrieved something, it should not pretend it understands it.
 
 ---
 
-### Key Concepts
+## Version Overview
 
-#### Evidence Bundle
+### v2 — Concept-Aware Retrieval (Frozen)
 
-An **Evidence Bundle** is a query-scoped structure that groups:
+**Goal:**
+Introduce a semantic layer that helps guide retrieval without sacrificing determinism.
 
-* one or more artworks
-* supporting essay excerpts
-* the concepts that connect them
-* explicit justification rules
-* confidence and provenance metadata
+**What v2 introduced:**
 
-Each bundle answers the question:
+* Hybrid retrieval:
 
-> *“Why are these artworks relevant to this query?”*
+  * lexical (Postgres FTS)
+  * semantic (vector embeddings)
+* A **human-curated concept layer**
+  Examples:
 
-Bundles are:
+  * Dutch Golden Age
+  * Still Life
+  * Vanitas
+  * Chiaroscuro
+* Concepts detected at query time with confidence
+* Concepts used to:
 
-* deterministic
-* derived strictly from v2 data and rules
-* created only when sufficient supporting evidence exists
+  * guard query expansion
+  * re-rank results lightly
+* Essays treated as **knowledge sources**, not evidence
+
+**What v2 did *not* do:**
+
+* No UI
+* No explanation of *why* artworks support concepts
+* No opaque reasoning
+
+v2 answers:
+
+> *“What should I retrieve?”*
 
 ---
+
+### v3.0 — Evidence Bundles & Explanation Graph (Frozen)
+
+**Goal:**
+Explain *why* specific artworks support specific concepts for a query.
+
+**Key ideas introduced:**
+
+#### Evidence Bundles
+
+* One bundle per concept per query
+* Each bundle contains:
+
+  * artworks
+  * artwork–concept confidence
+  * aggregate bundle confidence
+* Mapping computed at runtime via embedding similarity
 
 #### Explanation Graph
 
-For each query, v3.0 constructs a **small, explicit Explanation Graph** that captures:
+* Runtime-only, validated graph
+* Nodes:
 
-```
-Query → Concept → Evidence Bundle → Artworks / Essay Snippets
-```
+  * query
+  * concept
+  * evidence bundle
+  * artwork
+* Edges:
 
-The graph:
+  * query → concept
+  * concept → bundle
+  * bundle → artwork
+* Strict validation:
 
-* is generated at query time
-* contains only verifiable edges
-* allows every claim to be traced back to concrete data
+  * no orphan nodes
+  * no cycles
+  * confidence consistency enforced
 
-No edges are inferred without stored mappings or confidence thresholds.
+**UI principles introduced:**
 
----
+* Users never see graphs
+* Users see **concept-first explanations**
+* Only artworks that appear in the explanation graph are shown
+* Essays provide context, not evidence
 
-### What v3.0 Adds
+v3.0 answers:
 
-Backend:
-
-* Evidence Bundle construction (runtime, query-scoped)
-* Explanation Graph generation
-* Extended search API response including evidence artifacts
-
-Frontend (Minimal):
-
-* Single-page UI to visualize:
-
-  * Evidence Bundles
-  * Explanation Graph
-  * Bundle-level details (artworks + essays)
-* No interpretation or generation logic in the UI
+> *“Why does this artwork support this idea?”*
 
 ---
 
-### What v3.0 Does *Not* Do
+### v3.1 — Retrieval Transparency Layer (Frozen)
 
-* No new retrieval or ranking logic
-* No LLM usage
-* No free-form explanation generation
-* No concept-to-concept reasoning
-* No persistent storage of explanation artifacts
-* No complex graph visualizations (e.g., D3)
+**Goal:**
+Make retrieval *inspectable* without changing retrieval logic or explanation semantics.
 
-These are intentionally deferred to later versions.
+**What v3.1 introduced:**
+
+* A **retrieval trace** per result
+* Clear separation of signals:
+
+  * lexical match
+  * semantic similarity
+* No interpretation, only observation
+* Retrieval trace is:
+
+  * runtime-only
+  * optional
+  * does not affect ranking
+* UI shows:
+
+  * which signals contributed
+  * where they came from
+  * how strong they were (without claims of meaning)
+
+**What v3.1 explicitly avoided:**
+
+* No concept semantics in retrieval trace
+* No token-level semantic explanations
+* No inferred ranking logic
+* No metadata boosts
+
+v3.1 answers:
+
+> *“How was this result retrieved?”*
 
 ---
 
-### API Output (Simplified)
+### v3.2 — Dataset Expansion & Field-Aware Ingestion (Frozen)
 
-The existing search endpoint is extended to return:
+**Goal:**
+Improve retrieval quality by improving **data quality**, not algorithms.
 
-```json
-{
-  "query": "...",
-  "ranked_results": [...],
-  "explanation_graph": {
-    "nodes": [...],
-    "edges": [...]
-  }
-}
-```
+**What v3.2 introduced:**
 
-The frontend renders these artifacts *as-is* and does not derive additional logic.
+* Dataset expansion across:
+
+  * Dutch Golden Age
+  * Baroque
+  * Impressionism
+  * Cubism (constrained modern contrast)
+* New movement- and technique-focused essays
+* Field-aware `searchable_text` ingestion:
+
+  * title
+  * artist
+  * medium
+  * culture
+  * department
+  * (optional) tags
+* No schema changes
+* No ranking changes
+* No UI changes
+
+**Important design decision:**
+
+* Art movements are modeled as **concepts**, not metadata fields
+* Artwork–movement relationships are:
+
+  * inferred
+  * confidence-weighted
+  * derived from essay ↔ artwork similarity
+* Dates and artist names are contextual signals, not hard rules
+
+**What v3.2 improved:**
+
+* Stronger essay anchors
+* Higher likelihood of artworks attaching to movement concepts
+* Richer lexical provenance
+* More convincing explanation bundles
+
+v3.2 answers:
+
+> *“Is the dataset rich and structured enough to support good retrieval?”*
 
 ---
 
-### Status
+## What ArtAtlas Is *Not*
 
-* v3.0 is focused, stable, and demo-ready
-* UI is intentionally minimal and exists only to expose reasoning artifacts
-* Future versions will extend this foundation incrementally
+* ❌ Not an LLM-reasoning system
+* ❌ Not an ontology or knowledge graph
+* ❌ Not a rule-based art historian
+* ❌ Not a black-box recommender
+
+ArtAtlas does not guess.
+If evidence is weak, results stay sparse — by design.
+
+---
+
+## Current State
+
+| Version | Status |
+| ------- | ------ |
+| v2      | Frozen |
+| v3.0    | Frozen |
+| v3.1    | Frozen |
+| v3.2    | Frozen |
+
+---
+
+## Looking Ahead
+
+Future versions may explore:
+
+* field-aware ranking signals (v3.3)
+* multi-institution ingestion (v4.x)
+* richer UI affordances
+
+But each will remain:
+
+* scoped
+* explainable
+* backward-compatible
+
+---
+
+## Core Principle (Final)
+
+> **ArtAtlas prefers being honest over being impressive.**
+> If something cannot be justified, it is not shown.

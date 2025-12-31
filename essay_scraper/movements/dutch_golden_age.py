@@ -1,34 +1,8 @@
-from enum import Enum
-from typing import TypedDict
 import requests
 from bs4 import BeautifulSoup
 
-from essay_scraper.essay_db_service  import save_essay_response_to_db
-
-
-class EssayCategory(str, Enum):
-    MOVEMENT = "movement"
-    TECHNIQUE = "technique"
-    GENRE = "genre"
-
-class EssayResponse(TypedDict):
-    chunks:list[str]
-    essay_type:EssayCategory
-    essay_title:str
-    source:str
-    source_url:str
-
-def divide_into_managable_chunks(data, chunks):
-    total_chars = 0
-    summary_str = ""
-
-    for sentence in data.get_text().split('.'):
-        summary_str += sentence+'.'
-        total_chars += len(summary_str.split(" ")) 
-        if total_chars >= 150:
-            total_chars = 0
-            chunks.append(summary_str)
-            summary_str = ''
+from essay_scraper.movements.common import divide_into_managable_chunks
+from essay_scraper.essay_model import EssayCategory, EssayResponse
 
 
 # Explains what the dutch golden age was about

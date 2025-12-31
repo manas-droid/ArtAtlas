@@ -9,8 +9,14 @@ from .movements.dutch_golden_age import (
 )
 from .essay_db_service import save_essay_response_to_db
 
+from .movements.baroque import get_movement_essays
 
-def get_essays_and_save_to_db() -> None:
+from .movements.impressionism import get_impressionism_essays
+
+from .movements.cubism import get_cubism_essays
+
+
+def get_dutch_golden_era_essays_and_save_to_db() -> None:
     dutch_history_response = get_dutch_history_data()
     save_essay_response_to_db(dutch_history_response)
 
@@ -26,10 +32,28 @@ def get_essays_and_save_to_db() -> None:
     materials_data_response = get_materials_data()
     save_essay_response_to_db(materials_data_response)
 
+def get_baroque_essays_and_save_to_db() ->None :
+    baroque_essay_responses = get_movement_essays()
+    for baroque_essay_res in baroque_essay_responses:
+        save_essay_response_to_db(baroque_essay_res)
+
+
+def get_impressionism_essay_and_save_to_db()->None:
+    impressionism_essay_responses = get_impressionism_essays()
+    for impressionism_essay_response in impressionism_essay_responses:
+        save_essay_response_to_db(impressionism_essay_response)
+
+def get_cubism_essay_and_save_to_db()->None:
+    cubism_essay_responses = get_cubism_essays()
+    for cubism_essay_res in cubism_essay_responses:
+        save_essay_response_to_db(cubism_essay_res)
 
 def main() -> None:
     """CLI entry point to ingest all curated essays."""
-    get_essays_and_save_to_db()
+    get_dutch_golden_era_essays_and_save_to_db()
+    get_baroque_essays_and_save_to_db()
+    get_impressionism_essay_and_save_to_db()
+    get_cubism_essay_and_save_to_db()
 
 
 if __name__ == "__main__":

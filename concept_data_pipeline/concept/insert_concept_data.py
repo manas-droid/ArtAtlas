@@ -78,14 +78,19 @@ def _serialize_concepts(concepts: Iterable[ConceptRecord]) -> Sequence[tuple[str
 
 
 CURATED_CONCEPTS: tuple[ConceptRecord, ...] = (
-    ConceptRecord(name="Dutch Golden Age", concept_type=ConceptType.MOVEMENT),
-    ConceptRecord(name="Vanitas", concept_type=ConceptType.GENRE),
-    ConceptRecord(name="Still life", concept_type=ConceptType.GENRE),
-    ConceptRecord(name="Landscape", concept_type=ConceptType.GENRE),
-    ConceptRecord(name="Genre Painting", concept_type=ConceptType.GENRE),
-    ConceptRecord(name="Chiaroscuro", concept_type=ConceptType.TECHNIQUE),
-    ConceptRecord(name="Tenebrism", concept_type=ConceptType.TECHNIQUE),
-    ConceptRecord(name="Realism", concept_type=ConceptType.THEME),
-    ConceptRecord(name="Spatial Realism", concept_type=ConceptType.THEME),
-    ConceptRecord(name="Symbolism", concept_type=ConceptType.THEME),
+    ConceptRecord(name="Dutch Golden Age", concept_type=ConceptType.MOVEMENT), #1
+    ConceptRecord(name="Vanitas", concept_type=ConceptType.GENRE), #2
+    ConceptRecord(name="Still life", concept_type=ConceptType.GENRE), #3
+    ConceptRecord(name="Landscape", concept_type=ConceptType.GENRE), #4
+    ConceptRecord(name="Genre Painting", concept_type=ConceptType.GENRE), #5
+    ConceptRecord(name="Chiaroscuro", concept_type=ConceptType.TECHNIQUE), #6
+    ConceptRecord(name="Tenebrism", concept_type=ConceptType.TECHNIQUE), #7
+    ConceptRecord(name="Realism", concept_type=ConceptType.THEME), #8
+    ConceptRecord(name="Spatial Realism", concept_type=ConceptType.THEME), #9
+    ConceptRecord(name="Symbolism", concept_type=ConceptType.THEME), #10
+    ConceptRecord(name="Baroque", concept_type=ConceptType.MOVEMENT), #31
+    ConceptRecord(name="Impressionism", concept_type=ConceptType.MOVEMENT), #32
+    ConceptRecord(name="Cubism", concept_type=ConceptType.MOVEMENT), #33
+    ConceptRecord(name="Religious Narrative", concept_type=ConceptType.GENRE) #34
+
 )

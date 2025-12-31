@@ -21,20 +21,34 @@ BATCH_SIZE = INGESTION.artwork_batch_size
 
 
 def build_searchable_text(artwork:ArtworkModel):
-    fields = [
-        artwork['title'],
-        artwork['artistDisplayName'],
-        artwork['objectDate'],
-        artwork['medium'],
-        artwork['culture'],
-        artwork['department']
-    ]
-    return " ".join([f for f in fields if f])
+    parts = []
+
+    if artwork.get("title"):
+        parts.append(f"__title__ {artwork['title']}")
+
+    if artwork.get("artistDisplayName"):
+        parts.append(f"__artist__ {artwork['artistDisplayName']}")
+
+    if artwork.get("medium"):
+        parts.append(f"__medium__ {artwork['medium']}")
+
+    if artwork.get("culture"):
+        parts.append(f"__culture__ {artwork['culture']}")
+
+    if artwork.get("department"):
+        parts.append(f"__department__ {artwork['department']}")
+    
+    if artwork.get("tags"):
+        tags = "; ".join(t["term"] for t in artwork["tags"])
+        parts.append(f"__tags__ {tags}")
+        
+
+    return " \n".join(parts)
 
 
 
 def validate_object_response(artwork_response:ArtworkModel)->bool:
-    if not artwork_response['objectID'] or not artwork_response['primaryImageSmall'] or not artwork_response['searchable_text']:
+    if not artwork_response['objectID'] or not artwork_response['searchable_text']:
         return False
     return True
 
@@ -79,6 +93,10 @@ def save_batched_list_of_artworks(dept_id:int, limit:int = 3000):
 
         artwork_response:ArtworkModel = transform_object_to_artwork(object_response)
 
+        current_img = artwork_response.get('primaryImageSmall')
+        artwork_response['primaryImageSmall'] = current_img or f"https://collectionapi.metmuseum.org/api/collection/v1/iiif/{artwork_response['objectID']}/thumbnail/restricted"
+
+        
         if validate_object_response(artwork_response):
             artwork_response['embedding'] = encode_text(artwork_response['searchable_text'])
             list_of_artworks.append(artwork_response) 
@@ -94,4 +112,5 @@ def save_batched_list_of_artworks(dept_id:int, limit:int = 3000):
         if dept_objects_in_db >= limit:
             break
 
+    db_batch_insert_artwork(list_of_artworks)
     print("Data Collection from dept id", dept_id, " is completed!")

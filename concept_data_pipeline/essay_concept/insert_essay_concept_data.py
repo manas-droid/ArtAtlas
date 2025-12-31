@@ -96,47 +96,43 @@ ESSAY_CONCEPT_MAPPINGS: tuple[EssayConceptRecord, ...] = (
     EssayConceptRecord(essay_chunk_id=36, concept_id=2),
     EssayConceptRecord(essay_chunk_id=38, concept_id=1),
     EssayConceptRecord(essay_chunk_id=39, concept_id=1),
+    EssayConceptRecord(essay_chunk_id=43, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=44, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=44, concept_id=6),
+    EssayConceptRecord(essay_chunk_id=45, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=45, concept_id=8),
+    EssayConceptRecord(essay_chunk_id=47, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=47, concept_id=6),
+    EssayConceptRecord(essay_chunk_id=48, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=48, concept_id=34),
+    EssayConceptRecord(essay_chunk_id=49, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=49, concept_id=34),
+    EssayConceptRecord(essay_chunk_id=50, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=50, concept_id=6),
+    EssayConceptRecord(essay_chunk_id=50, concept_id=7),
+    EssayConceptRecord(essay_chunk_id=51, concept_id=31),
+    EssayConceptRecord(essay_chunk_id=51, concept_id=6),
+    EssayConceptRecord(essay_chunk_id=51, concept_id=7),
+
+    EssayConceptRecord(essay_chunk_id=52, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=53, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=54, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=55, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=56, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=57, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=58, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=59, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=60, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=61, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=62, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=63, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=64, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=65, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=66, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=68, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=69, concept_id=32),
+    EssayConceptRecord(essay_chunk_id=70, concept_id=33),
+    EssayConceptRecord(essay_chunk_id=71, concept_id=33),
+    EssayConceptRecord(essay_chunk_id=72, concept_id=33),
+    EssayConceptRecord(essay_chunk_id=73, concept_id=33)
 )
-
-
-"""
-Essay Concept mapping:
-Essay Id            Concept Id
-5                     2
-6                     3
-7                     3
-8                     3
-9                     4
-10                    4
-11                    4
-12                    5      
-13                    5      
-14                    6
-15                    6
-15                    7
-19                    6
-21                    6
-21                    7
-22                    6
-23                    6
-24                    6
-27                    6
-29                    6
-30                    6
-31                    6
-32                    7
-34                    8
-34                    6
-34                    9
-35                    3
-35                    6
-35                    8
-36                    3
-36                    10
-36                    2
-38                    1
-39                    1
-
-
-
-"""
