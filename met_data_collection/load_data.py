@@ -48,7 +48,7 @@ def build_searchable_text(artwork:ArtworkModel):
 
 
 def validate_object_response(artwork_response:ArtworkModel)->bool:
-    if not artwork_response['objectID'] or not artwork_response['primaryImageSmall'] or not artwork_response['searchable_text']:
+    if not artwork_response['objectID'] or not artwork_response['searchable_text']:
         return False
     return True
 
@@ -93,6 +93,10 @@ def save_batched_list_of_artworks(dept_id:int, limit:int = 3000):
 
         artwork_response:ArtworkModel = transform_object_to_artwork(object_response)
 
+        current_img = artwork_response.get('primaryImageSmall')
+        artwork_response['primaryImageSmall'] = current_img or f"https://collectionapi.metmuseum.org/api/collection/v1/iiif/{artwork_response['objectID']}/thumbnail/restricted"
+
+        
         if validate_object_response(artwork_response):
             artwork_response['embedding'] = encode_text(artwork_response['searchable_text'])
             list_of_artworks.append(artwork_response) 
@@ -108,4 +112,5 @@ def save_batched_list_of_artworks(dept_id:int, limit:int = 3000):
         if dept_objects_in_db >= limit:
             break
 
+    db_batch_insert_artwork(list_of_artworks)
     print("Data Collection from dept id", dept_id, " is completed!")
