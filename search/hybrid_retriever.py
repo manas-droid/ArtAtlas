@@ -21,14 +21,50 @@ class HybridRetriever:
     """Encapsulates shared lexical/vector logic for different tables."""
 
     def __init__(self, table_name: str, select_columns: str, limit_lexical: int, limit_vector: int,
-                 weights: SearchWeights | None = None) -> None:
+                 weights: SearchWeights | None = None,
+                 lexical_fields: dict[str, str] | None = None,
+                 lexical_field_weights: dict[str, float] | None = None) -> None:
         self.table = table_name
         self.columns = select_columns
         self.lexical_limit = limit_lexical
         self.vector_limit = limit_vector
         self.weights = weights or SearchWeights()
+        self.lexical_fields = lexical_fields or {}
+        self.lexical_field_weights = lexical_field_weights or {}
 
     def _lexical_sql(self) -> str:
+        field_selects = ""
+        if self.lexical_fields:
+            field_selects = ",\n                " + ",\n                ".join(
+                f"{expr}::text AS field_{name}"
+                for name, expr in self.lexical_fields.items()
+            )
+
+        # Candidate generation MUST remain anchored to searchable_tsv (recall contract).
+        # Field-aware weights are applied only after candidates are selected.
+        weighted_score_expr = "lexical_score"
+        if self.lexical_fields and self.lexical_field_weights:
+            per_field_terms: list[str] = []
+            for field_name in self.lexical_fields.keys():
+                weight = float(self.lexical_field_weights.get(field_name, 1.0))
+                per_field_terms.append(
+                    f"{weight} * ts_rank(to_tsvector('english', coalesce(field_{field_name}, '')), original_query)"
+                )
+            if per_field_terms:
+                weighted_score_expr = " + ".join(per_field_terms)
+
+        matched_fields_array = "ARRAY[]::text[]"
+        if self.lexical_fields:
+            matched_fields_array = (
+                "ARRAY_REMOVE(ARRAY[\n                "
+                + ",\n                ".join(
+                    f"CASE WHEN to_tsvector('english', coalesce(field_{name}, '')) @@ original_query "
+                    f"THEN '{name}' END"
+                    for name in self.lexical_fields.keys()
+                )
+                + "\n            ], NULL)"
+            )
+
         return f"""
             WITH search_results AS (
             SELECT 
@@ -36,6 +72,7 @@ class HybridRetriever:
                 searchable_tsv,
                 ts_rank(searchable_tsv, query) AS lexical_score,
                 query AS original_query
+                {field_selects}
             FROM {self.table}, websearch_to_tsquery('english', %s) AS query
             WHERE searchable_tsv @@ query
             ORDER BY lexical_score DESC
@@ -43,14 +80,15 @@ class HybridRetriever:
         )
         SELECT 
             id,
-            lexical_score,
+            ({weighted_score_expr}) AS lexical_score,
             ARRAY(
                 SELECT DISTINCT lex
                 FROM unnest(tsvector_to_array(searchable_tsv)) AS lex
                 WHERE lex IN (
                     SELECT unnest(tsvector_to_array(to_tsvector('english', %s)))
                 )
-            ) AS matched_terms
+            ) AS matched_terms,
+            {matched_fields_array} AS matched_fields
         FROM search_results;
         """
 
@@ -77,17 +115,23 @@ class HybridRetriever:
     def _format_result(self, row: Sequence, lexical_score_map: dict[int, dict]) -> dict:
         *fields, semantic_score = row
         record_id = fields[0]
-        lexical_info = lexical_score_map.get(record_id, {"score": 0.0, "matched_terms": []})
+        lexical_info = lexical_score_map.get(
+            record_id, {"score": 0.0, "matched_terms": [], "matched_fields": []}
+        )
         lexical_score = lexical_info.get("score", 0.0)
         matched_terms = lexical_info.get("matched_terms", [])
+        matched_fields = lexical_info.get("matched_fields", [])
         final_score = self._score(semantic_score, lexical_score)
-        return self._build_payload(fields, semantic_score, lexical_score, final_score, matched_terms)
+        return self._build_payload(
+            fields, semantic_score, lexical_score, final_score, matched_terms, matched_fields
+        )
 
     def _build_payload(self, fields: Sequence,
                        semantic_score: float,
                        lexical_score: float,
                        final_score: float,
-                       matched_terms: Sequence[str] | None = None) -> dict:
+                       matched_terms: Sequence[str] | None = None,
+                       matched_fields: Sequence[str] | None = None) -> dict:
         raise NotImplementedError
 
     def search(self, query: str) -> list[dict]:
@@ -96,7 +140,7 @@ class HybridRetriever:
             cur.execute(self._lexical_sql(), (query,query))
             lexical_rows = cur.fetchall()
             lexical_score_map = {
-                row[0]: {"score": row[1], "matched_terms": row[2] or []}
+                row[0]: {"score": row[1], "matched_terms": row[2] or [], "matched_fields": row[3] or []}
                 for row in lexical_rows
             }
             lexical_ids = list(lexical_score_map.keys())

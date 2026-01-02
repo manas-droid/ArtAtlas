@@ -77,7 +77,8 @@ function WhyTrace({ trace, fallbackLabel }: WhyTraceProps) {
       {lexical && (
         <div className="meta">
           <p className="lead">Lexical match</p>
-          <p className="meta">• <b>Matched query terms</b>: {lexical.matchedLexemes?.join(', ') || 'N/A'}</p>
+          <p className="meta">• <b>Matched Lexemes</b>: {lexical.matchedLexemes?.join(', ') || 'N/A'}</p>
+          <p className="meta">• <b>Matched fields</b>: {lexical.matchedFields?.join(', ') || 'N/A'}</p>
           <p className="meta">• <b>Source</b>: {lexical.source || 'N/A'}</p>
         </div>
       )}

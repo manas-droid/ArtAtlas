@@ -8,6 +8,10 @@ from dataclasses import dataclass
 
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
+def _env_bool(name: str, default: str = "0") -> bool:
+    value = os.getenv(name, default).strip().lower()
+    return value in {"1", "true", "yes", "y", "on"}
+
 
 @dataclass(frozen=True)
 class HybridSearchConfig:
@@ -32,3 +36,20 @@ class IngestionConfig:
 
 HYBRID_SEARCH = HybridSearchConfig()
 INGESTION = IngestionConfig()
+
+# v3.3: field-aware lexical ordering (applies only to lexical score; semantic untouched).
+FIELD_AWARE_LEXICAL = _env_bool("FIELD_AWARE_LEXICAL", default="1")
+
+# Field weights are intentionally conservative. They should only improve ordering of already-retrieved results.
+ARTWORK_LEXICAL_FIELD_WEIGHTS: dict[str, float] = {
+    "artist": 1.4,
+    "title": 1.3,
+    "medium": 1.15,
+    "culture": 1.0,
+    "department": 0.85,
+}
+
+ESSAY_LEXICAL_FIELD_WEIGHTS: dict[str, float] = {
+    "title": 1.1,
+    "text": 1.0,
+}
