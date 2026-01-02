@@ -22,13 +22,15 @@ class HybridRetriever:
 
     def __init__(self, table_name: str, select_columns: str, limit_lexical: int, limit_vector: int,
                  weights: SearchWeights | None = None,
-                 lexical_fields: dict[str, str] | None = None) -> None:
+                 lexical_fields: dict[str, str] | None = None,
+                 lexical_field_weights: dict[str, float] | None = None) -> None:
         self.table = table_name
         self.columns = select_columns
         self.lexical_limit = limit_lexical
         self.vector_limit = limit_vector
         self.weights = weights or SearchWeights()
         self.lexical_fields = lexical_fields or {}
+        self.lexical_field_weights = lexical_field_weights or {}
 
     def _lexical_sql(self) -> str:
         field_selects = ""
@@ -37,6 +39,19 @@ class HybridRetriever:
                 f"{expr}::text AS field_{name}"
                 for name, expr in self.lexical_fields.items()
             )
+
+        # Candidate generation MUST remain anchored to searchable_tsv (recall contract).
+        # Field-aware weights are applied only after candidates are selected.
+        weighted_score_expr = "lexical_score"
+        if self.lexical_fields and self.lexical_field_weights:
+            per_field_terms: list[str] = []
+            for field_name in self.lexical_fields.keys():
+                weight = float(self.lexical_field_weights.get(field_name, 1.0))
+                per_field_terms.append(
+                    f"{weight} * ts_rank(to_tsvector('english', coalesce(field_{field_name}, '')), original_query)"
+                )
+            if per_field_terms:
+                weighted_score_expr = " + ".join(per_field_terms)
 
         matched_fields_array = "ARRAY[]::text[]"
         if self.lexical_fields:
@@ -65,7 +80,7 @@ class HybridRetriever:
         )
         SELECT 
             id,
-            lexical_score,
+            ({weighted_score_expr}) AS lexical_score,
             ARRAY(
                 SELECT DISTINCT lex
                 FROM unnest(tsvector_to_array(searchable_tsv)) AS lex

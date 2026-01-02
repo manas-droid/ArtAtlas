@@ -3,7 +3,12 @@ from __future__ import annotations
 from typing import Literal, Sequence
 
 from concept_data_pipeline.artwork_concept.affinity import ArtworkConceptRecord
-from utils.config import HYBRID_SEARCH
+from utils.config import (
+    ARTWORK_LEXICAL_FIELD_WEIGHTS,
+    ESSAY_LEXICAL_FIELD_WEIGHTS,
+    FIELD_AWARE_LEXICAL,
+    HYBRID_SEARCH,
+)
 from search.hybrid_retriever import HybridRetriever
 from db.db_pool import get_connection
 
@@ -51,6 +56,7 @@ class ArtworkRetriever(HybridRetriever):
                 "culture": "culture",
                 "department": "department",
             },
+            lexical_field_weights=ARTWORK_LEXICAL_FIELD_WEIGHTS if FIELD_AWARE_LEXICAL else None,
         )
 
 
@@ -118,6 +124,7 @@ class EssayRetriever(HybridRetriever):
                 "title": "essay_title",
                 "text": "chunk_text",
             },
+            lexical_field_weights=ESSAY_LEXICAL_FIELD_WEIGHTS if FIELD_AWARE_LEXICAL else None,
         )
 
     def _build_payload(self, fields: Sequence,
