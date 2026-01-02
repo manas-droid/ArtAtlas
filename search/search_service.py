@@ -16,8 +16,10 @@ essay_retriever = EssayRetriever()
 ESSAY_CONCEPT_BOOST = 0.3
 CONCEPT_WEIGHTS: ConceptWeights = (0.20, 0.65, 0.15)
 
-# Vanitas, Still life, Landscape, Genre Painting
-PRIMARY_CONCEPT_IDS = {2, 3, 4, 5}
+# Dutch Golden Age, Baroque, Impressionism, Cubism, Still Life, Landscape, Genre Painting, Religious Narrative
+
+PRIMARY_CONCEPT_IDS = {1,31,32,33,3,4,5,34}
+
 
 
 def _is_primary(concept_id: int) -> bool:

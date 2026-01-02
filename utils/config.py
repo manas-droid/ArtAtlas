@@ -17,9 +17,9 @@ class HybridSearchConfig:
     semantic_weight: float = float(os.getenv("SEMANTIC_WEIGHT", "0.6"))
     fallback_penalty: float = float(os.getenv("FALLBACK_PENALTY", "0.7"))
     essay_lexical_limit: int = int(os.getenv("ESSAY_LEXICAL_LIMIT", "20"))
-    essay_vector_limit: int = int(os.getenv("ESSAY_VECTOR_LIMIT", "2"))
+    essay_vector_limit: int = int(os.getenv("ESSAY_VECTOR_LIMIT", "3"))
     artwork_lexical_limit: int = int(os.getenv("ARTWORK_LEXICAL_LIMIT", "50"))
-    artwork_vector_limit: int = int(os.getenv("ARTWORK_VECTOR_LIMIT", "3"))
+    artwork_vector_limit: int = int(os.getenv("ARTWORK_VECTOR_LIMIT", "5"))
 
 
 @dataclass(frozen=True)
