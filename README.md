@@ -208,6 +208,23 @@ v3.2 answers:
 
 ---
 
+
+
+###  v3.3 - Field-Aware Lexical Ordering (Frozen)
+
+v3.3 refines result ordering using field-aware lexical signals introduced in v3.2, without changing retrieval candidates, explanation logic, or data semantics.
+This version focuses strictly on ranking quality, improving how results are ordered once they have already been retrieved.
+
+By leveraging structured searchable_text fields (e.g. title, artist, medium, tags), v3.3 applies conservative, explicit weighting to lexical matches based on where they occur. Matches in semantically strong fields such as artist and title are gently favored over weaker, generic fields like department or culture. Semantic similarity scores remain untouched, and no new retrieval signals are introduced.
+
+Importantly, v3.3 guarantees that candidate sets are identical to v3.2 - only ordering changes. Explanation Graphs, Evidence Bundles, and retrieval transparency remain byte-for-byte consistent. This ensures that results feel more intuitive to users while preserving ArtAtlas’s core contract of honesty, explainability, and version discipline.
+
+v3.3 answers:
+
+> *"Are the best results ordered intuitively without changing meaning?"*
+
+---
+
 ## What ArtAtlas Is *Not*
 
 * ❌ Not an LLM-reasoning system
@@ -228,6 +245,7 @@ If evidence is weak, results stay sparse — by design.
 | v3.0    | Frozen |
 | v3.1    | Frozen |
 | v3.2    | Frozen |
+| v3.3    | Frozen |
 
 ---
 
