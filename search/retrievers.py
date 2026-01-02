@@ -8,13 +8,20 @@ from search.hybrid_retriever import HybridRetriever
 from db.db_pool import get_connection
 
 
-def compute_retrieval_trace(matched_lexemes:list[str], lexical_source:Literal["essay_text", "aggregated_metadata"] , semantic_score:float, embedding_source:Literal["essay_chunk", "artwork_embedding"]):
+def compute_retrieval_trace(
+    matched_lexemes: list[str],
+    matched_fields: list[str],
+    lexical_source: Literal["essay_text", "aggregated_metadata"],
+    semantic_score: float,
+    embedding_source: Literal["essay_chunk", "artwork_embedding"],
+):
     
     if matched_lexemes and len(matched_lexemes) > 0:
         return {
             "lexical_match": {
                 "source" : lexical_source,
-                "matched_lexemes":matched_lexemes
+                "matched_lexemes": matched_lexemes,
+                "matched_fields": matched_fields,
             },
             "semantic_match": {
                 "similarity": semantic_score,
@@ -37,6 +44,13 @@ class ArtworkRetriever(HybridRetriever):
             select_columns=columns,
             limit_lexical=HYBRID_SEARCH.artwork_lexical_limit,
             limit_vector=HYBRID_SEARCH.artwork_vector_limit,
+            lexical_fields={
+                "title": "title",
+                "artist": "artist",
+                "medium": "medium",
+                "culture": "culture",
+                "department": "department",
+            },
         )
 
 
@@ -44,10 +58,17 @@ class ArtworkRetriever(HybridRetriever):
                        semantic_score: float,
                        lexical_score: float,
                        final_score: float,
-                       matched_terms=None) -> dict:
+                       matched_terms=None,
+                       matched_fields=None) -> dict:
         artwork_id, title, artist, image_url = fields
 
-        retrieval_trace:dict = compute_retrieval_trace(matched_terms, 'aggregated_metadata', semantic_score, 'artwork_embedding') 
+        retrieval_trace:dict = compute_retrieval_trace(
+            matched_terms or [],
+            matched_fields or [],
+            'aggregated_metadata',
+            semantic_score,
+            'artwork_embedding',
+        )
 
         return {
             "result_type": "artwork",
@@ -93,16 +114,27 @@ class EssayRetriever(HybridRetriever):
             select_columns=columns,
             limit_lexical=HYBRID_SEARCH.essay_lexical_limit,
             limit_vector=HYBRID_SEARCH.essay_vector_limit,
+            lexical_fields={
+                "title": "essay_title",
+                "text": "chunk_text",
+            },
         )
 
     def _build_payload(self, fields: Sequence,
                        semantic_score: float,
                        lexical_score: float,
                        final_score: float,
-                       matched_terms=None) -> dict:
+                       matched_terms=None,
+                       matched_fields=None) -> dict:
         essay_id, essay_title, chunk_text, chunk_index, source = fields
 
-        retrieval_trace:dict = compute_retrieval_trace(matched_terms, 'essay_text', semantic_score, 'essay_chunk') 
+        retrieval_trace:dict = compute_retrieval_trace(
+            matched_terms or [],
+            matched_fields or [],
+            'essay_text',
+            semantic_score,
+            'essay_chunk',
+        )
 
         return {
             "result_type": "essay",

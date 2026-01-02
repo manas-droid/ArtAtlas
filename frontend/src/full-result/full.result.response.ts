@@ -9,6 +9,7 @@ export type FullResultModel = {
 export type RetrievalTrace = {
     lexicalMatch ?: {
         matchedLexemes : string[],
+        matchedFields:string[],
         source : string
     },
     semanticalMatch ?: {
@@ -79,6 +80,7 @@ export const getEssayModel = (essayResponses: any[]): EssayResultModel[]=>{
             retrievalTrace : {
                 lexicalMatch : (essay.retrieval_trace.lexical_match) ? {
                     matchedLexemes: essay.retrieval_trace.lexical_match.matched_lexemes,
+                    matchedFields: essay.retrieval_trace.lexical_match.matched_fields,
                     source : transformLexicalSource(essay.retrieval_trace.lexical_match.source)
                 } : undefined,
                 semanticalMatch : (essay.retrieval_trace.semantic_match)  ? {
@@ -108,6 +110,7 @@ export const getArtworkModel = (artworkResponses:any[]):ArtworkResultModel[]=>{
             retrievalTrace : {
                 lexicalMatch : (artwork.retrieval_trace.lexical_match) ? {
                     matchedLexemes: artwork.retrieval_trace.lexical_match.matched_lexemes,
+                    matchedFields: artwork.retrieval_trace.lexical_match.matched_fields,
                     source : transformLexicalSource(artwork.retrieval_trace.lexical_match.source)
                 } : undefined,
                 semanticalMatch : (artwork.retrieval_trace.semantic_match)  ? {
