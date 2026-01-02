@@ -252,8 +252,7 @@ If evidence is weak, results stay sparse — by design.
 ## Looking Ahead
 
 Future versions may explore:
-
-* field-aware ranking signals (v3.3)
+* query normalization (v3.4)
 * multi-institution ingestion (v4.x)
 * richer UI affordances
 
