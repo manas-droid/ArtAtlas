@@ -1,6 +1,6 @@
 # ArtAtlas
 
-**ArtAtlas** is a local-first, explainable art retrieval system designed to answer *why* specific artworks support art-historical ideas — not just *what* matches a query.
+**ArtAtlas** is a local-first, explainable art retrieval system designed to answer *why* specific artworks support art-historical ideas - not just *what* matches a query.
 
 The system prioritizes:
 
@@ -35,7 +35,7 @@ Each version introduces **one flagship capability**, is **explicitly frozen**, a
 
 ## Version Overview
 
-### v2 — Concept-Aware Retrieval (Frozen)
+### v2 - Concept-Aware Retrieval (Frozen)
 
 **Goal:**
 Introduce a semantic layer that helps guide retrieval without sacrificing determinism.
@@ -72,7 +72,7 @@ v2 answers:
 
 ---
 
-### v3.0 — Evidence Bundles & Explanation Graph (Frozen)
+### v3.0 - Evidence Bundles & Explanation Graph (Frozen)
 
 **Goal:**
 Explain *why* specific artworks support specific concepts for a query.
@@ -100,9 +100,9 @@ Explain *why* specific artworks support specific concepts for a query.
   * artwork
 * Edges:
 
-  * query → concept
-  * concept → bundle
-  * bundle → artwork
+  * query -> concept
+  * concept -> bundle
+  * bundle -> artwork
 * Strict validation:
 
   * no orphan nodes
@@ -122,7 +122,7 @@ v3.0 answers:
 
 ---
 
-### v3.1 — Retrieval Transparency Layer (Frozen)
+### v3.1 - Retrieval Transparency Layer (Frozen)
 
 **Goal:**
 Make retrieval *inspectable* without changing retrieval logic or explanation semantics.
@@ -159,7 +159,7 @@ v3.1 answers:
 
 ---
 
-### v3.2 — Dataset Expansion & Field-Aware Ingestion (Frozen)
+### v3.2 - Dataset Expansion & Field-Aware Ingestion (Frozen)
 
 **Goal:**
 Improve retrieval quality by improving **data quality**, not algorithms.
@@ -227,10 +227,10 @@ v3.3 answers:
 
 ## What ArtAtlas Is *Not*
 
-* ❌ Not an LLM-reasoning system
-* ❌ Not an ontology or knowledge graph
-* ❌ Not a rule-based art historian
-* ❌ Not a black-box recommender
+* Not an LLM-reasoning system
+* Not an ontology or knowledge graph
+* Not a rule-based art historian
+* Not a black-box recommender
 
 ArtAtlas does not guess.
 If evidence is weak, results stay sparse — by design.
