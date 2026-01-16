@@ -1,5 +1,7 @@
 # ArtAtlas
 
+View [demo](https://www.youtube.com/watch?v=QGAWi0o7jrg)
+
 **ArtAtlas** is a local-first, explainable art retrieval system designed to answer *why* specific artworks support art-historical ideas - not just *what* matches a query.
 
 The system prioritizes:
